@@ -25,6 +25,6 @@
     {"name":"puppetlabs-apt","version_requirement":">= 2.2.1"},
     {"name":"codingfuture-cfnetwork","version_requirement":">= 0.9.0"}
   ],
-  "data_provider": 'hiera'
+  "data_provider": "hiera"
 }
 
