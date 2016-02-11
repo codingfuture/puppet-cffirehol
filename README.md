@@ -30,6 +30,8 @@ If files got rewritten and `cffirehol` is enabled, `/sbin/firehol start` is exec
 Custom Debian/Ubuntu packages for the latest FireHOL and dependencies are available at
 [FireHOL Backports in Launchpad](https://launchpad.net/~andvgal/+archive/ubuntu/firehol-bpo)
 
+*Note: At the moment, firehol.conf generation is quite messy and needs to be rewritten accompanied by unit tests*
+
 
 ## Classes and resources types
 

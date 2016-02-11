@@ -4,7 +4,7 @@ require 'ipaddr'
 module Puppet::CfFirehol
     FIREHOL_CONF_FILE = '/etc/firehol/firehol.conf'
     FIREHOL_META_FILE = '/etc/firehol/.firehol.json'
-    CONF_VERSION = '1.0'
+    CONF_VERSION = '0.9.0'
     # TODO: get rid of this regex
     PRIVATE_IPS = /^((10\.)|(172\.1[6-9]\.)|(172\.2[0-9]\.)|(172\.3[0-1]\.)|(192\.168\.)|(127\.0\.0\.1))/
     UNROUTABLE_IPS = [
