@@ -3,7 +3,7 @@ class cffirehol::debian::apt {
     
     if $::cffirehol::debian::firehol_apt_url {
         apt::key {'firehol':
-            id => '5D6CBEBE280C28B18F77C1FEABE831B7ABA014C4',
+            id      => '5D6CBEBE280C28B18F77C1FEABE831B7ABA014C4',
             content => '
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
@@ -38,11 +38,11 @@ T5EURECAHdQRiIB/zKAgYjuzF/wNm33bB2zVYA==
         }
         apt::source { 'firehol':
             location => $::cffirehol::debian::firehol_apt_url,
-            release => $::cffirehol::debian::firehol_apt_release,
-            repos => 'main',
-            include => { src => false },
-            require => Apt::Key['firehol'],
-            notify => Class['apt::update'],
+            release  => $::cffirehol::debian::firehol_apt_release,
+            repos    => 'main',
+            include  => { src            => false },
+            require  => Apt::Key['firehol'],
+            notify   => Class['apt::update'],
         }
     }
 }

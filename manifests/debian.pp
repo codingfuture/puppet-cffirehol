@@ -20,10 +20,10 @@ class cffirehol::debian(
     
     if $::cffirehol::enable {
         file_line { 'firehol_enable':
-            ensure => present,
-            path => '/etc/default/firehol',
-            line => 'START_FIREHOL=YES',
-            match => 'START_FIREHOL=NO',
+            ensure  => present,
+            path    => '/etc/default/firehol',
+            line    => 'START_FIREHOL=YES',
+            match   => 'START_FIREHOL=NO',
             replace => true,
         }
     }

@@ -12,11 +12,11 @@ class cffirehol::internal::config {
     
     #---
     cffirehol_config{ 'firehol':
-        ensure => present,
-        enable => $::cffirehol::enable,
-        custom_headers => any2array($::cffirehol::custom_headers),
-        ip_whitelist => $ip_whitelist,
-        ip_blacklist => any2array($::cffirehol::ip_blacklist),
+        ensure          => present,
+        enable          => $::cffirehol::enable,
+        custom_headers  => any2array($::cffirehol::custom_headers),
+        ip_whitelist    => $ip_whitelist,
+        ip_blacklist    => any2array($::cffirehol::ip_blacklist),
         synproxy_public => $::cffirehol::synproxy_public,
     }
 
