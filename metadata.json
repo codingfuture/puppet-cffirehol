@@ -7,9 +7,20 @@
   "source": "https://github.com/codingfuture/puppet-cffirehol",
   "project_page": "https://github.com/codingfuture/puppet-cffirehol",
   "issues_url": "https://github.com/codingfuture/puppet-cffirehol/issues",
-  "dependencies": [
-    {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
+  "operatingsystem_support": [
+    {
+        "operatingsystem":"Debian",
+        "operatingsystemrelease":[ "8" ]
+    },
+    {
+        "operatingsystem": "Ubuntu",
+        "operatingsystemrelease": [ "14.04", "15.04", "15.10" ]
+    }
   ],
-  "data_provider": null
+  "dependencies": [
+    {"name":"puppetlabs-stdlib","version_requirement":">= 4.11.0"},
+    {"name":"puppetlabs-apt","version_requirement":">= 2.2.1"}
+  ],
+  "data_provider": 'hiera'
 }
 

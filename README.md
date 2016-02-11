@@ -1,83 +1,64 @@
 # cffirehol
 
-#### Table of Contents
-
-1. [Description](#description)
-1. [Setup - The basics of getting started with cffirehol](#setup)
-    * [What cffirehol affects](#what-cffirehol-affects)
-    * [Setup requirements](#setup-requirements)
-    * [Beginning with cffirehol](#beginning-with-cffirehol)
-1. [Usage - Configuration options and additional functionality](#usage)
-1. [Reference - An under-the-hood peek at what the module is doing and how](#reference)
-1. [Limitations - OS compatibility, etc.](#limitations)
-1. [Development - Guide for contributing to the module](#development)
-
 ## Description
 
-Start with a one- or two-sentence summary of what the module does and/or what
-problem it solves. This is your 30-second elevator pitch for your module.
-Consider including OS/Puppet version it works with.
+This is not a standalone module. Please use with [codingfuture/cfnetwork](https://github.com/codingfuture/puppet-cfnetwork).
 
-You can give more descriptive information in a second paragraph. This paragraph
-should answer the questions: "What does this module *do*?" and "Why would I use
-it?" If your module has a range of functionality (installation, configuration,
-management, etc.), this is the time to mention it.
+Allmost all configuration is done through abstract `cfnetwork::*` resources, except FireHOL-specific stuff.
 
-## Setup
+**By default, firewall is disabled!**
+The proper deployment procedure would be:
+* Add `codingfuture/cfnetwork` and `codingfuture/cffirehol` to R10K Puppetfile (or install manually)
+* Add related configuration to Hiera (strongly encouraged)
+* Deploy configuration
+* Verify network interfaces are properly configured
+* Verify that `/etc/firehol/firehol.conf` is properly configured
+* TRY firehol with: `/sbin/firehol try`
+* Ensure that at least new SSH connections work
+* Update Hiera to enable cffirehol
+* Deploy and pray ;)
 
-### What cffirehol affects **OPTIONAL**
+## Implementation details:
 
-If it's obvious what your module touches, you can skip this section. For
-example, folks can probably figure out that your mysql_instance module affects
-their MySQL instances.
+`cffirehol` has providers for `cfnetwork` resource types. On every puppet catalog apply,
+`cffirehol` read all defined resources from `/etc/firehol/.firehol.json`. Upon catalog
+apply is complete, a new JSON is generated. ONLY IF, new JSON does not byte-to-byte
+match the original one, a new `/etc/firehol/firehol.conf` is generated with both
+files getting rewritten.
 
-If there's more that they should know about, though, this is the place to mention:
+If files got rewritten and `cffirehol` is enabled, `/sbin/firehol start` is executed.
+Custom Debian/Ubuntu packages for the latest FireHOL and dependencies are available at
+[FireHOL Backports in Launchpad](https://launchpad.net/~andvgal/+archive/ubuntu/firehol-bpo)
 
-* A list of files, packages, services, or operations that the module will alter,
-  impact, or execute.
-* Dependencies that your module automatically installs.
-* Warnings or other important notices.
 
-### Setup Requirements **OPTIONAL**
+## Classes and resources types
 
-If your module requires anything extra before setting up (pluginsync enabled,
-etc.), mention it here.
+### cffirehol
 
-If your most recent release breaks compatibility or requires particular steps
-for upgrading, you might want to include an additional "Upgrading" section
-here.
+The main class. Normally, it includes by bi-directional dependency from cfnetwork based on
+$firewall_provider parameter.
 
-### Beginning with cffirehol
+Options:
 
-The very basic steps needed for a user to get the module up and running. This
-can include setup steps, if necessary, or it can be an example of the most
-basic use of the module.
+* `enable` = false - if true, FireHOL will be enabled upon deployment.
+    Note: /etc/firehol/firehol.conf is always generated
+* `custom_headers` = [] - optional, add custom FireHOL configuration headers
+* `ip_whitelist` = [] - optional, add essential IPs to firewall whitelist as exception for blacklist
+    This list is not expected to be large.
+    Note: you still need to open services.
+* `ip_blacklist` = [] - optional, add blacklisted IPs.
+    Please avoid specifying this parameter. Please update blacklist* ipsets directly.
+* `synproxy_public` = true - protect TCP services with SYNPROXY on all public interfaces.
+    Please see [cfnetwork][] for definition of public interface.
 
-## Usage
+### cfnetwork::debian
 
-This section is where you describe how to customize, configure, and do the
-fancy stuff with your module here. It's especially helpful if you include usage
-examples and code samples for doing things with your module.
+Debian and Ubuntu specific FireHOL package configuration
 
-## Reference
+* `firehol_apt_url` = 'http://ppa.launchpad.net/andvgal/firehol-bpo/ubuntu' - repo with required packages
+* `firehol_apt_release` = 'trusty' - OS release
+    Note: it is safe to use these Ubuntu packages on Debian of corresponding version (e.g. trusty & jessie have the same roots)
 
-Here, include a complete list of your module's classes, types, providers,
-facts, along with the parameters for each. Users refer to this section (thus
-the name "Reference") to find specific details; most users don't read it per
-se.
 
-## Limitations
 
-This is where you list OS compatibility, version compatibility, etc. If there
-are Known Issues, you might want to include them under their own heading here.
-
-## Development
-
-Since your module is awesome, other users will want to play with it. Let them
-know what the ground rules for contributing are.
-
-## Release Notes/Contributors/Etc. **Optional**
-
-If you aren't using changelog, put your release notes here (though you should
-consider using changelog). You can also add any additional sections you feel
-are necessary or important to include here. Please use the `## ` header.
+[cfnetwork](https://github.com/codingfuture/puppet-cfnetwork)
