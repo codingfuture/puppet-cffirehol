@@ -18,6 +18,17 @@ The proper deployment procedure would be:
 * Update Hiera to enable cffirehol
 * Deploy and pray ;)
 
+## Setup
+
+If r10k is used until [RK-3](https://tickets.puppetlabs.com/browse/RK-3) is solved, make
+sure to have the following lines in Puppetfile:
+
+```ruby
+mod 'puppetlabs/stdlib', '4.11.0'
+mod 'puppetlabs/apt', '2.2.1'
+mod 'codingfuture/cfnetwork'
+```
+
 ## Implementation details:
 
 `cffirehol` has providers for `cfnetwork` resource types. On every puppet catalog apply,
