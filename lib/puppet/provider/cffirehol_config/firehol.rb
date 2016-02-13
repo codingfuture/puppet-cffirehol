@@ -15,7 +15,7 @@ Puppet::Type.type(:cffirehol_config).provide(
             
         instances << self.new(
             :name => 'firehol',
-            :ensure => fhmeta['version'].empty? ? :absent : :exists,
+            :ensure => fhmeta['generator_version'].empty? ? :absent : :exists,
             :custom_headers => fhmeta['custom_headers'],
             :ip_whitelist => fhmeta['ip_whitelist'],
             :ip_blacklist => fhmeta['ip_blacklist'],

@@ -1,12 +1,15 @@
 require 'json'
 require 'ipaddr'
+require 'digest/md5'
 
 module CfFirehol
     FIREHOL_CONF_FILE = '/etc/firehol/firehol.conf'
     FIREHOL_META_FILE = '/etc/firehol/.firehol.json'
-    CONF_VERSION = '0.9.0'
     # TODO: get rid of this regex
     PRIVATE_IPS = /^((10\.)|(172\.1[6-9]\.)|(172\.2[0-9]\.)|(172\.3[0-1]\.)|(192\.168\.)|(127\.0\.0\.1))/
+    # gen version based on actual generator hash
+    GENERATOR_VERSION = Digest::MD5.hexdigest(File.read(__FILE__))
+
     UNROUTABLE_IPS = [
         '10.0.0.0/8',
         '172.16.0.0/12',
@@ -33,13 +36,13 @@ module CfFirehol
         # keep for possible re-flush()
         #self.new_config = nil
     end
-    
+
     def self.read_config
         orig_config = self.orig_config
         return orig_config unless orig_config.nil?
 
         fhmeta = {
-            'version' => '',
+            'generator_version' => '',
             'custom_services' => {},
             'custom_headers' => [],
             'ip_whitelist' => [],
@@ -57,20 +60,20 @@ module CfFirehol
             file = File.read(FIREHOL_META_FILE)
             self.orig_metafile = file
             fhread = JSON.parse(file)
-            if fhread['version'] != CONF_VERSION
-                warning('FireHOL meta config version mismatch: ' + fhread['version'])
+            if fhread['generator_version'] != GENERATOR_VERSION
+                warning('FireHOL meta config generator version mismatch: ' + fhread['generator_version'])
             else
                 fhmeta.merge! fhread
             end
             debug "Read: " + fhmeta.to_s
         rescue
         end
-        
+
         self.orig_config = fhmeta
         debug('Orig config:' + fhmeta.to_s)
 
         fhmeta
-    end        
+    end
 
     def self.filter_ipv(arg)
         arg = [arg] unless arg.is_a? Array
@@ -136,8 +139,8 @@ module CfFirehol
    
     def self.gen_config()
         fhmeta = self.new_config
-        fhmeta['version'] = CONF_VERSION
-        
+        fhmeta['generator_version'] = GENERATOR_VERSION
+
         metafile = JSON.pretty_generate(fhmeta)
         if self.orig_metafile == metafile
             debug('Meta files match, no need to reconfigure')
