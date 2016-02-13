@@ -667,10 +667,10 @@ module CfFirehol
                 fhconf << %Q{    policy deny}
                 fhconf << %Q{    protection bad-packets}
                 fhconf << %Q{    client icmp accept}
-                # TODO: there is a bug with table length 'ACC_LIM_5_sec_accurate_REJECT' (max 28)
-                #fhconf << %Q{    server ping accept with limit 5/sec}
+                # NOTE: if IPv6 ping limit produces an error due to chain length
+                fhconf << %Q{    server4 ping accept with hashlimit ping upto 1/s burst 2}
             end
-            
+
             ports.each do |p|
                 service = p[:service]
                 port_type = p[:port_type]
@@ -752,23 +752,21 @@ module CfFirehol
                 end
                 if outprivate
                     fhconf << %Q{    client icmp accept}
-                else
-                    fhconf << %Q{    client ping accept}
                 end
-                
+
                 outfacedef.each do |p|
                     service = p[:service]
                     port_type = p[:port_type]
                     src4, src6 = filter_ipv(p[:src] || [])
                     dst4, dst6 = filter_ipv(p[:dst] || [])
-                
+
                     comment = p[:comment]
                     if comment
                         fhconf << '    # ' + comment.sub("\n", ' ')
                     end
-                    
+
                     do_generic = true
-                    
+
                     if not (src4.empty? and dst4.empty?)
                         do_generic = false
                         cmd = %Q{    #{port_type}4 "#{service}" accept}
