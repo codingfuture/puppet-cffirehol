@@ -1,7 +1,8 @@
+require 'cffirehol/providerbase'
 
 Puppet::Type.type(:cffirehol_config).provide(
     :firehol,
-    :parent => Puppet::Type.type(:cfnetwork_firewall_port).provider(:firehol)
+    :parent => CfFirehol::ProviderBase
 ) do
     desc "FireHOL provider for cffirehol_config"
     
@@ -54,5 +55,9 @@ Puppet::Type.type(:cffirehol_config).provide(
             debug('Running firehol')
             firehol('start')
         end
+    end
+    
+    def self.getMetaIndex
+        nil
     end
 end
