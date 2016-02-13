@@ -5,7 +5,7 @@ require 'digest/md5'
 module CfFirehol
     FIREHOL_CONF_FILE = '/etc/firehol/firehol.conf'
     FIREHOL_META_FILE = '/etc/firehol/.firehol.json'
-    # gen version based on actual generator hash
+    # Make sure to regen config, if this module changes
     GENERATOR_VERSION = Digest::MD5.hexdigest(File.read(__FILE__))
 
     UNROUTABLE_IPS = [
