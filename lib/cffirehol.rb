@@ -309,7 +309,7 @@ module CfFirehol
                 
                 # just in case
                 infaces.uniq!
-                outface.uniq!
+                outfaces.uniq!
 
                 infaces.each do |inface|
                     outfaces.each do |outface|
