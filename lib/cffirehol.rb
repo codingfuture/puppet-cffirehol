@@ -171,27 +171,27 @@ module CfFirehol
         fhconf << 'FIREHOL_OUTPUT_ACTIVATION_POLICY="DROP"'
         fhconf << 'FIREHOL_FORWARD_ACTIVATION_POLICY="DROP"'
         fhconf << ''
-        
-        
+
+
         dnat_ports = []
         iface_ports = {}
         ifaces = fhmeta['ifaces'].clone
-        custom_services = fhmeta['custom_services']
+        custom_services = fhmeta['custom_services'].clone
         router_ports = {}
-        
+
         ifaces['local'] = {
             :device => 'lo',
             :address => '127.0.0.1/8',
             :extra_addresses => []
         }
         iface_lo = ifaces['local']
-        
+
         ifaces.each do | iface, ifacedef |
             # make sure gateway ifaces a always first in router pairs
             unless ifacedef[:gateway].nil?
                 router_ports[iface] = {}
             end
-            
+
             # make sure we found routes to self through lo
             unless ifacedef[:address].nil?
                 iface_lo[:extra_addresses] << ifacedef[:address]
