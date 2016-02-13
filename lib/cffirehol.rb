@@ -201,31 +201,31 @@ module CfFirehol
             end
         end
         iface_lo[:extra_addresses].map! do |item| strip_mask item end
-        
-        fhmeta['ports'].each do |k, portdef|
-            port_type, iface, service, comment = k.split(':')
-            
+
+        fhmeta['ports'].each do |portname, portdef|
+            port_type, iface, service, comment = portname.split(':')
+
             weight = '100'
             weight, port_type = port_type.split('#') if port_type.include? ('#')
             weight = weight.to_i
 
             port_type = 'server' if port_type == 'service'
-            
+
             if comment.nil?
                 comment = portdef[:comment]
             else
                 comment = comment + ': ' + (portdef[:comment] || '')
             end
-            
+
             if port_type == 'dnat'
                 if not custom_services.has_key?(service)
                     raise Puppet::DevError, "DNAT service must be defined as custom_service: #{service}"
                 end
-                
+
                 if portdef[:to_dst].nil?
                     raise Puppet::DevError, "DNAT port must set to_dst property: #{k}"
                 end
-                
+
                 inface, outface = iface.split('/')
                 dnat_ports << portdef.merge({
                     :iface => inface,
@@ -234,56 +234,98 @@ module CfFirehol
                     :comment => comment,
                     :dnat_port => true,
                 })
-                
+
                 # see cfnetwork::dnat_port type definition
                 if not portdef[:to_port].nil?
                     to_port = portdef[:to_port].to_s
                     newservice = custom_services[service].clone
                     server_ports = newservice[:server_ports]
                     server_ports = [server_ports] unless server_ports.is_a? Array
-                    
+
                     newservice[:server_ports] = []
                     server_ports.each do |port|
                         newservice[:server_ports] << port.split('/')[0] + '/' + to_port
                     end
-                    
+
                     custom_services[service + '_' + to_port] = newservice
                 end
                 next
             end
-            
+
             if port_type == 'router'
                 inface, outface = iface.split('/')
                 infaces = []
                 outfaces = []
-                
+                msrc = portdef[:src]
+                mdst = portdef[:dst]
+                gwifaces = ifaces.select do |k, v| not v[:gateway].nil? end
+
                 if inface == 'any'
-                    # TODO: route filtering based on dst/src
-                    infaces += ifaces.keys
+                    if msrc.nil? or msrc.empty?
+                        infaces += ifaces.keys
+                    else
+                        found = false
+
+                        ifaces.each do |ifk, ifv|
+                            routable, unroutable = filter_routable(msrc, ifv)
+                            if not routable.empty?
+                                infaces << ifk
+                                found = true
+                            end
+                        end
+
+                        if not found
+                            infaces += gwifaces.keys
+                        end
+                    end
                 else
                     infaces << inface
                 end
-                
+
                 if outface == 'any'
-                    # TODO: route filtering based on dst/src
-                    outfaces += ifaces.keys
+                    if mdst.nil? or mdst.empty?
+                        outfaces += ifaces.keys
+                    else
+                        found = false
+
+                        ifaces.each do |ifk, ifv|
+                            routable, unroutable = filter_routable(mdst, ifv)
+                            if not routable.empty?
+                                outfaces << ifk
+                                found = true
+                            end
+                        end
+
+                        if not found
+                            infaces += gwifaces.keys
+                        end
+                    end
                 else
                     outfaces << outface
                 end
-                
+
                 infaces.each do |inface|
                     outfaces.each do |outface|
                         # avoid creating reverse routers which never get reached
-                        if router_ports.has_key?(outface) and router_ports[outface].has_key?(inface)
-                            inface, outface = outface, inface
+                        # NOTE: ordering is very important for FW rule reachability
+                        if router_ports.has_key?(inface) and router_ports[inface].has_key?(outface)
+                            port_type = 'server'
+                        elsif router_ports.has_key?(outface) and router_ports[outface].has_key?(inface)
+                            port_type = 'client'
+                        elsif not ifaces[outface][:gateway].nil?
+                            # prefer gateway to be the first
                             port_type = 'client'
                         else
                             port_type = 'server'
                         end
-                
+
+                        if port_type == 'client'
+                            inface, outface = outface, inface
+                        end
+
                         router_ports[inface] ||= {}
                         router_ports[inface][outface] ||= []
-                        
+
                         router_ports[inface][outface] << portdef.merge({
                             :port_type => port_type,
                             :service => service,
@@ -293,7 +335,7 @@ module CfFirehol
                 end
                 next
             end
-            
+
             # filter by routable dst for client and src for server, if set
             if iface == 'any'
                 gdst_match = []
@@ -306,19 +348,19 @@ module CfFirehol
                     msrc = portdef[:src]
                     mdst = portdef[:dst]
                     leafface = ifacedef[:gateway].nil?
-                    
-                    if port_type == 'client' and not mdst.nil?
+
+                    if port_type == 'client' and !mdst.nil? and !mdst.empty?
                         mdst, rdst = filter_routable(mdst, ifacedef)
                         gdst_match += mdst
                         gdst_reject += rdst
                         next if mdst.empty? and leafface
-                    elsif port_type == 'server' and not msrc.nil?
+                    elsif port_type == 'server' and !msrc.nil? and !msrc.empty?
                         msrc, rsrc = filter_routable(msrc, ifacedef)
                         gsrc_match += msrc
                         gsrc_reject += rsrc
                         next if msrc.empty? and leafface
                     end
-                    
+
                     port_override = portdef.merge({
                         :port_type => port_type,
                         :service => service,
@@ -326,7 +368,7 @@ module CfFirehol
                         :dst => mdst,
                         :comment => comment
                     })
-                    
+
                     if leafface
                         iface_ports[iface] << port_override
                     else
@@ -336,10 +378,10 @@ module CfFirehol
                         }
                     end
                 end
-                
+
                 gsrc_reject.uniq!
                 gsrc_reject -= gsrc_match
-                
+
                 gdst_reject.uniq!
                 gdst_reject -= gdst_match
 
@@ -358,7 +400,7 @@ module CfFirehol
                         msrc.uniq!
                         port_override[:src] = msrc
                     end
-                    
+
                     iface_ports[gdef[:iface]] << port_override
                 end
                 next
@@ -412,7 +454,7 @@ module CfFirehol
         fhconf << ''
         ip_blacklist.each do |ip|
             cand = IPAddr.new(ip)
-            
+
             if cand.ipv4?
                 fhconf << %Q{ipset4 add blacklist4 "#{ip}"}
             elsif cand.ipv6?
@@ -422,7 +464,7 @@ module CfFirehol
             end
         end
         fhconf << ''
-        
+
         fhconf << '# Protection on public-facing interfaces'
         fhconf << '#----------------'
         ifaces.each do |iface, ifacedef|
@@ -430,14 +472,14 @@ module CfFirehol
             fhconf << %Q{# #{iface}}
             dev = ifacedef[:device]
             address = ifacedef[:address]
-            
+
             # Blacklist
             fhconf << %Q{blacklist4 input inface "#{dev}" ipset:blacklist4net ipset:blacklist4 except src ipset:whitelist4}
             fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist6net ipset:blacklist6 except src ipset:whitelist6}
 
             # unroutable
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
-            
+
             unless unroutable.empty?
                 unroutable = unroutable.join(',')
                 fhconf << %Q{iptables -t raw -N cfunroute_#{iface}}
@@ -445,7 +487,7 @@ module CfFirehol
                 fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -d "#{unroutable}" -j DROP}
                 fhconf << %Q{iptables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
             end
-            
+
             # synproxy
             if fhmeta['synproxy_public']
                 synproxy_candidates = iface_ports[iface] or []
@@ -501,11 +543,11 @@ module CfFirehol
                         synproxy_action4 = 'accept'
                         synproxy_action6 = 'accept'
                     end
-                    
+
                     server_ports.each do |p|
                         proto, dport = p.split('/')
                         next unless proto == 'tcp'
-                        
+
                         if not dst4.empty?
                             cmd = %Q{synproxy4 #{synproxy_type} inface #{iface} dst "#{dst4}" dport "#{dport}"}
                             cmd += %Q{ src "#{src4}"} unless src4.empty?
@@ -521,7 +563,7 @@ module CfFirehol
                     end
                 end
             end
-            
+
             # SNAT / MASQUERADE
             if address.nil?
                 fhconf << %Q{iptables -t nat -A POSTROUTING -o "#{dev}" -j MASQUERADE}
@@ -530,7 +572,7 @@ module CfFirehol
                 addr_list += ifacedef[:extra_addresses] unless ifacedef[:extra_addresses].nil?
                 addr_list.map! do |item| strip_mask item end # strip mask
                 address = addr_list[0]
-                
+
                 addr_list = addr_list.join(',')
                 fhconf << %Q{iptables -t nat -N cfpost_snat_#{iface}}
                 fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -s #{addr_list} -j RETURN}
@@ -546,13 +588,13 @@ module CfFirehol
         fhconf << fhmeta['custom_headers'].join("\n")
         fhconf << ''
 
-        
+
         fhconf << '# NAT'
         fhconf << '#----------------'
         dnat_ports.each do |v|
             iface = v[:iface]
             service = v[:service]
-            
+
             if iface != 'any'
                 dev = ifaces[iface][:device]
                 inface = %Q{inface "#{dev}"}
@@ -562,18 +604,18 @@ module CfFirehol
             src4, src6 = filter_ipv(v[:src] || [])
             dst4, dst6 = filter_ipv(v[:dst] || [])
             to4, to6 = filter_ipv(v[:to_dst])
-            
+
             to_port = v[:to_port] || nil
             to_port = ':' + to_port.to_s if not to_port.nil?
-            
+
             comment = v[:comment]
             if comment
                 fhconf << '# ' + comment.sub("\n", ' ')
             end
-            
+
             server_ports = custom_services[service][:server_ports]
             server_ports = [server_ports] unless server_ports.is_a? Array
-            
+
             if not (src4.empty? and dst4.empty? and to4.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
@@ -594,7 +636,7 @@ module CfFirehol
             end
         end
         fhconf << ''
-        
+
         fhconf << '# Interfaces'
         fhconf << '#----------------'
         iface_ports.each do |iface, ports|
@@ -606,9 +648,9 @@ module CfFirehol
                 warning("Ports: " + ports.to_s)
                 next
             end
-            
+
             fhconf << %Q{interface "#{dev}" "#{iface}"}
-            
+
             if dev == 'lo'
                 fhconf << %Q{    policy reject}
                 fhconf << %Q{    client icmp accept}
@@ -632,18 +674,18 @@ module CfFirehol
                 dst4, dst6 = filter_ipv(p[:dst] || [])
                 user = (p[:user] or []).join(' ')
                 group = ( p[:group] or []).join(' ')
-                
+
                 cmd_cond = ''
                 cmd_cond += %Q{ uid "#{user}"} unless user.empty?
                 cmd_cond += %Q{ gid "#{group}"} unless group.empty?
-                
+
                 comment = p[:comment]
                 if comment
                     fhconf << '    # ' + comment.sub("\n", ' ')
                 end
-                
+
                 do_generic = true
-                
+
                 if not (src4.empty? and dst4.empty?)
                     do_generic = false
                     cmd = %Q{    #{port_type}4 "#{service}" accept}
@@ -669,7 +711,7 @@ module CfFirehol
             fhconf << ''
         end
         fhconf << ''
-        
+
         fhconf << '# Routers'
         fhconf << '#----------------'
         router_ports.each do |inface, infacedef|
@@ -694,7 +736,7 @@ module CfFirehol
                     warning("Unknown outface: " + outface.to_s)
                     next
                 end
-                
+
                 fhconf << %Q{router "#{inface}_#{outface}" #{indev} #{outdev}}
                 if inprivate and outprivate
                     fhconf << %Q{    policy reject}
@@ -745,8 +787,8 @@ module CfFirehol
             end
         end
         fhconf << ''
-        
-        
+
+
         # Write New FireHOL conf
         #---
         conftmp = FIREHOL_CONF_FILE + ".#{$$}"
@@ -754,15 +796,15 @@ module CfFirehol
         File.open(conftmp, 'w+', 0600 ) do |f|
             f.write(fhconf)
         end
-        
+
         # Write registry file
         #---
         metatmp = FIREHOL_META_FILE + ".#{$$}"
-        
+
         File.open(metatmp, 'w+', 0600 ) do |f|
             f.write(metafile)
         end
-        
+
         # Move tmp files to their location
         #---
         File.rename(conftmp, FIREHOL_CONF_FILE)
