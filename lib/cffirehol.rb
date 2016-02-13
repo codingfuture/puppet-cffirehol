@@ -258,15 +258,17 @@ module CfFirehol
                 outfaces = []
                 msrc = portdef[:src]
                 mdst = portdef[:dst]
+                allifaces = ifaces.keys - ['local']
                 gwifaces = ifaces.select do |k, v| not v[:gateway].nil? end
 
                 if inface == 'any'
                     if msrc.nil? or msrc.empty?
-                        infaces += ifaces.keys
+                        infaces += allifaces
                     else
                         found = false
 
                         ifaces.each do |ifk, ifv|
+                            next if ifk == 'local'
                             routable, unroutable = filter_routable(msrc, ifv)
                             if not routable.empty?
                                 infaces << ifk
@@ -284,11 +286,12 @@ module CfFirehol
 
                 if outface == 'any'
                     if mdst.nil? or mdst.empty?
-                        outfaces += ifaces.keys
+                        outfaces += allifaces
                     else
                         found = false
 
                         ifaces.each do |ifk, ifv|
+                            next if ifk == 'local'
                             routable, unroutable = filter_routable(mdst, ifv)
                             if not routable.empty?
                                 outfaces << ifk
@@ -303,6 +306,10 @@ module CfFirehol
                 else
                     outfaces << outface
                 end
+                
+                # just in case
+                infaces.uniq!
+                outface.uniq!
 
                 infaces.each do |inface|
                     outfaces.each do |outface|
