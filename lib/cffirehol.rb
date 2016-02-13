@@ -417,32 +417,36 @@ module CfFirehol
         #==============================
         fhconf << '# Custom Services'
         fhconf << '#----------------'
-        
+
         custom_services.each do |k, v|
             server_ports = v[:server_ports]
             server_ports = server_ports.join(' ') if server_ports.is_a? Array
             client_ports = v[:client_ports]
             client_ports = client_ports.join(' ') if client_ports.is_a? Array
+            comment = v[:comment]
+            if comment
+                fhconf << '# ' + comment.sub("\n", ' ')
+            end
             fhconf << %Q{server_#{k}_ports="#{server_ports}"}
             fhconf << %Q{client_#{k}_ports="#{client_ports}"}
             fhconf << ''
         end
-        
+
         fhconf << '# Setup of ipsets'
         fhconf << '#----------------'
         ip_whitelist = fhmeta['ip_whitelist']
         ip_blacklist = fhmeta['ip_blacklist']
-        
+
         fhconf << %Q{ipset4 create whitelist4 hash:net}
         fhconf << %Q{ipset6 create whitelist6 hash:net}
         fhconf << %Q{ipset4 create blacklist4 hash:ip}
         fhconf << %Q{ipset4 create blacklist4net hash:net}
         fhconf << %Q{ipset6 create blacklist6net hash:net}
-        
+
         fhconf << '# note: hardcoded list is not expected to be large'
         ip_whitelist.each do |ip|
             cand = IPAddr.new(ip)
-            
+
             if cand.ipv4?
                 fhconf << %Q{ipset4 add whitelist4 "#{ip}"}
             elsif cand.ipv6?
@@ -495,44 +499,44 @@ module CfFirehol
                 # TODO: router_ports that not DNAT-related
                 synproxy_candidates.each do |portdef|
                     next if portdef[:port_type] != 'server'
-                    
-                    service = portdef[:service]
-                    service = custom_services[service]
-                    
+
+                    service_name = portdef[:service]
+                    service = custom_services[service_name]
+
                     if service.nil?
-                        warning("Synproxy requires a described service: " + service)
+                        warning("Synproxy requires a described service: " + service_name)
                         next
                     end
-                    
+
                     server_ports = service[:server_ports]
                     server_ports = [server_ports] unless server_ports.is_a? Array
 
                     src4, src6 = filter_ipv(portdef[:src] || [])
-                    
+
                     to_port = portdef[:to_port] || nil
                     to_port = ':' + to_port.to_s if not to_port.nil?
-                    
+
                     comment = portdef[:comment]
                     if comment
                         fhconf << '# ' + comment.sub("\n", ' ')
-                    end                    
+                    end
 
                     if portdef[:dst].nil? or portdef[:dst].empty?
                         dst = []
                         dst << ifaces[iface][:address] unless ifaces[iface][:address].nil?
                         dst += ifaces[iface][:extra_address] unless ifaces[iface][:extra_address].nil?
-                        
+
                         if dst.empty?
                             warning("SYNPROXY requires that dst is set either explicitly " +
                                     "or through iface static address: " + portdef.to_s)
                             next
                         end
-                        
+
                         dst4, dst6 = filter_ipv(dst)
                     else
                         dst4, dst6 = filter_ipv(portdef[:dst])
                     end
-                    
+
                     if portdef.has_key? :dnat_port
                         to4, to6 = filter_ipv(portdef[:to_dst])
                         synproxy_type = 'forward'
