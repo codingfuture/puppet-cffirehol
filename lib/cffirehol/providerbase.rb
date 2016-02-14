@@ -1,6 +1,8 @@
 
 require 'puppet/provider'
-require 'cffirehol'
+
+# Done this way due to some weird behavior in tests also ignoring $LOAD_PATH
+require File.expand_path( '../../cffirehol', __FILE__ )
 
 class CfFirehol::ProviderBase < Puppet::Provider
     desc "FireHOL provider for cfnetwork_firewall_port"

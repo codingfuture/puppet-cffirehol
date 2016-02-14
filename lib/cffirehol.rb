@@ -144,6 +144,12 @@ module CfFirehol
 
         false
     end
+    
+    def self.check_iface(iface, ifaces, type)
+        unless ifaces.has_key? iface
+            raise Puppet::DevError, "Unknown #{type} interface: #{iface}"
+        end
+    end
 
     def self.gen_config()
         fhmeta = self.new_config
@@ -237,6 +243,9 @@ module CfFirehol
                     :comment => comment,
                     :dnat_port => true,
                 })
+                
+                check_iface(inface, ifaces, 'DNAT inface')
+                check_iface(outface, ifaces, 'DNAT outface')
 
                 # see cfnetwork::dnat_port type definition
                 if not portdef[:to_port].nil?
@@ -284,6 +293,7 @@ module CfFirehol
                         end
                     end
                 else
+                    check_iface(inface, ifaces, 'router inface')
                     infaces << inface
                 end
 
@@ -307,6 +317,7 @@ module CfFirehol
                         end
                     end
                 else
+                    check_iface(outface, ifaces, 'router outface')
                     outfaces << outface
                 end
                 
@@ -417,6 +428,7 @@ module CfFirehol
             end
 
             # default
+            check_iface(iface, ifaces, port_type)
             iface_ports[iface] ||= []
             iface_ports[iface] << portdef.merge({
                 :port_type => port_type,
