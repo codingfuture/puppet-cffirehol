@@ -100,12 +100,13 @@ module CfFirehol
     end
 
     def self.filter_routable(addresses, iface)
+        addresses = [addresses] unless addresses.is_a? Array
+
         # assume routable for dynamic iface
-        return addresses if iface[:address].nil?
+        return [addresses, []] if iface[:address].nil?
 
         match = []
         reject = []
-        addresses = [addresses] unless addresses.is_a? Array
         addresses.each do |addr|
             ip = IPAddr.new(addr)
             to_check = [ iface[:address] ]
@@ -134,9 +135,11 @@ module CfFirehol
     def self.is_private_iface(ifacedef)
         return false if ifacedef[:force_public]
 
-        addr = IPAddr.new(ifacedef[:address])
-        UNROUTABLE_IPS.each do |net|
-            return true if IPAddr.new(net).include? addr
+        if not ifacedef[:address].nil?
+            addr = IPAddr.new(ifacedef[:address])
+            UNROUTABLE_IPS.each do |net|
+                return true if IPAddr.new(net).include? addr
+            end
         end
 
         false
