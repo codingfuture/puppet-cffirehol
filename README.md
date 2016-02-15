@@ -37,6 +37,11 @@ mod 'codingfuture/cfnetwork'
 # make sure you check dependencies of dependencies too.
 ```
 
+# Examples
+
+Please check [codingufuture/puppet-test](https://github.com/codingfuture/puppet-test) for
+example of a complete infrastructure configuration and Vagrant provisioning.
+
 ## Implementation details
 
 `cffirehol` has providers for `cfnetwork` resource types. On every puppet catalog apply,
