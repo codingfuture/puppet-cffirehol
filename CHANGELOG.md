@@ -7,6 +7,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added check verify that port ifaces are defined instead of not understandable error
 - Changed to require ruby modules by absolute path due to strange issues with $LOAD_PATH in some deployments
+- Added hiera.yaml version 4 support
 
 ## [0.9.3]
 
