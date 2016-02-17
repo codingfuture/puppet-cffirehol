@@ -484,7 +484,7 @@ module CfFirehol
             if cand.ipv4?
                 fhconf << %Q{ipset4 add blacklist4 "#{ip}"}
             elsif cand.ipv6?
-                fhconf << %Q{ipset6 add blacklist6 "#{ip}"}
+                fhconf << %Q{ipset6 add blacklist6net "#{ip}"}
             else
                 warning('Unknown blacklist address type: ' + ip)
             end
@@ -501,7 +501,7 @@ module CfFirehol
 
             # Blacklist
             fhconf << %Q{blacklist4 input inface "#{dev}" ipset:blacklist4net ipset:blacklist4 except src ipset:whitelist4}
-            fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist6net ipset:blacklist6 except src ipset:whitelist6}
+            fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist6net except src ipset:whitelist6}
 
             # unroutable
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
