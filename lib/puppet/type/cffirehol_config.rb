@@ -14,7 +14,7 @@ Puppet::Type.newtype(:cffirehol_config) do
         isnamevar
     end
     
-    newparam(:enable, :boolean => true, :parent=>Puppet::Parameter::Boolean) do
+    newproperty(:enable, :boolean => true, :parent=>Puppet::Property::Boolean) do
         desc "Enable firewall immediate activation"
         defaultto false
     end

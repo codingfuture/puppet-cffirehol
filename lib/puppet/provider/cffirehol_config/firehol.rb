@@ -22,6 +22,7 @@ Puppet::Type.type(:cffirehol_config).provide(
             :ip_whitelist => fhmeta['ip_whitelist'],
             :ip_blacklist => fhmeta['ip_blacklist'],
             :synproxy_public => fhmeta['synproxy_public'],
+            :enable => fhmeta['enable'],
         )
         
         debug('Instances:' + instances.to_s)
@@ -38,11 +39,13 @@ Puppet::Type.type(:cffirehol_config).provide(
             write_config('ip_whitelist', [])
             write_config('ip_blacklist', [])
             write_config('synproxy_public', false)
+            write_config('enable', false)
         when :present, :exists
             write_config('custom_headers', (@resource[:custom_headers] or []))
             write_config('ip_whitelist', (@resource[:ip_whitelist] or []))
             write_config('ip_blacklist', (@resource[:ip_blacklist] or []))
             write_config('synproxy_public', (@resource[:synproxy_public] or false))
+            write_config('enable', (@resource[:enable] or false))
         else
             warning(@resource)
             warning(@property_hash)
