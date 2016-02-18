@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.9.5]
+
+- Fixed to issue with removed hash:ip blacklist for IPv6 - only hash:net is enough
+- Fixed enable to be a property instead of param to force FireHOL run on only this propery update
+
 ## [0.9.4]
 
 - Added check verify that port ifaces are defined instead of not understandable error
@@ -35,6 +40,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.9.5](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.5)
 [0.9.4](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.4)
 [0.9.3](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.3)
 [0.9.2](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.2)

@@ -78,7 +78,7 @@ Options:
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
 
-### cfnetwork::debian
+### cffirehol::debian
 
 Debian and Ubuntu specific FireHOL package configuration
 
