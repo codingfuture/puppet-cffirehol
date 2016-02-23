@@ -16,6 +16,7 @@ class cffirehol::debian(
 
     package { 'iptables-persistent': ensure => absent }
     package { 'netfilter-persistent': ensure => absent }
+    package { 'ufw': ensure => absent }
     
     
     if $::cffirehol::enable {
