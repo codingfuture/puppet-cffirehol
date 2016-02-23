@@ -27,15 +27,11 @@ The proper deployment procedure should be:
 
 ## Setup
 
-If r10k is used until [RK-3](https://tickets.puppetlabs.com/browse/RK-3) is solved, make
-sure to have the following lines in Puppetfile:
+Please use [librarian-puppet](https://rubygems.org/gems/librarian-puppet/) or
+[cfpuppetserver module](https://forge.puppetlabs.com/codingfuture/cfpuppetserver) to deal with dependencies.
 
-```ruby
-mod 'puppetlabs/stdlib', '4.11.0'
-mod 'puppetlabs/apt', '2.2.1'
-mod 'codingfuture/cfnetwork'
-# make sure you check dependencies of dependencies too.
-```
+There is a known r10k issue [RK-3](https://tickets.puppetlabs.com/browse/RK-3) which prevents
+automatic dependencies of dependencies installation.
 
 ## Examples
 
