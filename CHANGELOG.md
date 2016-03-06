@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.9.7]
+
+- Fixed to properly support apt pinning with related cfsystem changes
+
 ## [0.9.6]
 
 - Added force removal of ufw package
@@ -44,6 +48,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.9.7](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.7)
 [0.9.6](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.6)
 [0.9.5](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.5)
 [0.9.4](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.4)
