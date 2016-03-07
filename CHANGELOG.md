@@ -6,6 +6,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.9.7]
 
 - Fixed to properly support apt pinning with related cfsystem changes
+- Added missing IPv6 essentials. For more advanced configuration use custom headers.
 
 ## [0.9.6]
 

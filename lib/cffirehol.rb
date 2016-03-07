@@ -181,7 +181,6 @@ module CfFirehol
         fhconf << 'FIREHOL_FORWARD_ACTIVATION_POLICY="DROP"'
         fhconf << ''
 
-
         dnat_ports = []
         iface_ports = {}
         ifaces = fhmeta['ifaces'].clone
@@ -609,12 +608,6 @@ module CfFirehol
         end
         fhconf << ''
 
-        fhconf << '# Custom Headers'
-        fhconf << '#----------------'
-        fhconf << fhmeta['custom_headers'].join("\n")
-        fhconf << ''
-
-
         fhconf << '# NAT'
         fhconf << '#----------------'
         dnat_ports.each do |v|
@@ -663,6 +656,21 @@ module CfFirehol
         end
         fhconf << ''
 
+        fhconf << '# Custom Headers'
+        fhconf << '#----------------'
+        fhconf << fhmeta['custom_headers'].join("\n")
+        fhconf << ''
+
+        fhconf << ''
+        fhconf << '# IPv6 interop essentials'
+        fhconf << '#----------------'
+        fhconf << 'ipv6 interface any ipv6interop proto icmpv6'
+        fhconf << '    server6 ipv6error accept'
+        fhconf << '    client6 ipv6neigh accept'
+        fhconf << '    server6 ipv6neigh accept'
+        fhconf << '    policy return'
+        fhconf << ''
+        
         fhconf << '# Interfaces'
         fhconf << '#----------------'
         iface_ports.each do |iface, ports|
