@@ -60,9 +60,8 @@ module CfFirehol
             fhread = JSON.parse(file)
             if fhread['generator_version'] != GENERATOR_VERSION
                 warning('FireHOL meta config generator version mismatch: ' + fhread['generator_version'])
-            else
-                fhmeta.merge! fhread
             end
+            fhmeta.merge! fhread
             debug "Read: " + fhmeta.to_s
         rescue
         end
