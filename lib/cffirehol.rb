@@ -5,6 +5,7 @@ require 'digest/md5'
 module CfFirehol
     FIREHOL_CONF_FILE = '/etc/firehol/firehol.conf'
     FIREHOL_META_FILE = '/etc/firehol/.firehol.json'
+    FIREHOL_START_REQUIRED_FILE = '/etc/firehol/.restart_stamp'
     # Make sure to regen config, if this module changes
     GENERATOR_VERSION = Digest::MD5.hexdigest(File.read(__FILE__))
 

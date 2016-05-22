@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added silent drop of RST
 - Fixed not to show false recreate of resources on module update
 - Added IPv6 unroutable
+- Fixed to remember if firehol must be restarted (after failure or getting enabled)
 
 ## [0.9.7]
 

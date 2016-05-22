@@ -1,4 +1,6 @@
 
+require 'fileutils'
+
 # Done this way due to some weird behavior in tests also ignoring $LOAD_PATH
 require File.expand_path( '../../../../cffirehol/providerbase', __FILE__ )
 
@@ -59,9 +61,17 @@ Puppet::Type.type(:cffirehol_config).provide(
         reconf = cf_firehol.gen_config()
         cf_firehol.reset_config()
         
-        if reconf and @resource[:enable]
-            debug('Running firehol')
-            firehol('start')
+        restart_file = CfFirehol::FIREHOL_START_REQUIRED_FILE
+        reconf ||= File.exists? restart_file
+        
+        if reconf
+            FileUtils.touch(restart_file)
+            
+            if @resource[:enable]
+                warning('Running: /sbin/firehol start')
+                firehol('start')
+                FileUtils.rm_f(restart_file)
+            end
         end
     end
     
