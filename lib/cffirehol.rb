@@ -14,11 +14,12 @@ module CfFirehol
         '192.168.0.0/16',
         '224.0.0.0/4',
         '127.0.0.1/8',
-        '::1/128',
-        'fe80::/10',
+        #'::1/128',
+        #'fe80::/10',
         'fc00::/7',
         '0100::/64',
     ]
+    @@unroutable_cache = nil
 
     class << self
         attr_accessor :orig_metafile
@@ -133,16 +134,31 @@ module CfFirehol
     end
 
     def self.strip_mask(ip)
-        return ip.gsub(/\/[0-9]+$/, '')
+        return ip.split('/')[0]
     end
 
     def self.is_private_iface(ifacedef)
         return false if ifacedef[:force_public]
+        
+        if @@unroutable_cache.nil?
+            @@unroutable_cache = UNROUTABLE_IPS.map do |net|
+                IPAddr.new(net)
+            end
+        end
 
         if not ifacedef[:address].nil?
             addr = IPAddr.new(ifacedef[:address])
-            UNROUTABLE_IPS.each do |net|
-                return true if IPAddr.new(net).include? addr
+            @@unroutable_cache.each do |net|
+                return true if net.include? addr
+            end
+        end
+        
+        if not ifacedef[:extra_addresses].nil?
+            ifacedef[:extra_addresses].each do |addr|
+                addr = IPAddr.new(addr)
+                @@unroutable_cache.each do |net|
+                    return true if net.include? addr
+                end
             end
         end
 
@@ -201,7 +217,10 @@ module CfFirehol
         }
         iface_lo = ifaces['local']
 
+        debug('>> Populating local iface')
         ifaces.each do | iface, ifacedef |
+            next if iface == 'local'
+            
             # make sure gateway ifaces a always first in router pairs
             unless ifacedef[:gateway].nil?
                 router_ports[iface] = {}
@@ -209,30 +228,34 @@ module CfFirehol
             
             if (persistent_dhcp and
                 interface_facts.has_key? ifacedef[:device] and
-                ifacedef[:method].to_s == 'dhcp'
+                ifacedef[:method].to_s == 'dhcp' and
+                ifacedef[:address].nil?
             ) then
                 iface_fact = interface_facts[ifacedef[:device]]
                 
                 ['bindings', 'bindings6'].each do |bindings|
                     next if not iface_fact.has_key? bindings
-                    bindings = iface_fact[bindings]
-                    
-                    ifacedef[:extra_addresses] << "#{bindings['address']}/#{bindings['netmask']}"
+                    ifacedef[:extra_addresses] = [] if ifacedef[:extra_addresses].nil?
+                    iface_fact[bindings].each do |binfo|
+                        ifacedef[:extra_addresses] << (binfo['address']+'/'+binfo['netmask'])
+                    end
                 end
             end
 
             # make sure we found routes to self through lo
             unless ifacedef[:address].nil?
-                iface_lo[:extra_addresses] << ifacedef[:address].split('/')[0]
+                iface_lo[:extra_addresses] << strip_mask(ifacedef[:address])
             end
             unless ifacedef[:extra_addresses].nil?
                 ifacedef[:extra_addresses].each do |addr|
-                    iface_lo[:extra_addresses] << addr.split('/')[0]
+                    iface_lo[:extra_addresses] << strip_mask(addr)
                 end
             end
         end
-        iface_lo[:extra_addresses].map! do |item| strip_mask item end
+        
+        debug(">>> Ifaces: #{ifaces}")
 
+        debug('>> Processing port configuration')
         fhmeta['ports'].each do |portname, portdef|
             port_type, iface, service, comment = portname.split(':')
 
@@ -458,7 +481,11 @@ module CfFirehol
                 :comment => comment
             })
         end
+        debug(">>> Iface Ports: #{iface_ports}")
+        debug(">>> Router Ports: #{router_ports}")
+        
         #==============================
+        debug('>> Creating custom services')
         fhconf << '# Custom Services'
         fhconf << '#----------------'
 
@@ -476,6 +503,7 @@ module CfFirehol
             fhconf << ''
         end
 
+        debug('>> Creating ipsets')
         fhconf << '# Setup of ipsets'
         fhconf << '#----------------'
         ip_whitelist = fhmeta['ip_whitelist']
@@ -513,6 +541,7 @@ module CfFirehol
         end
         fhconf << ''
 
+        debug('>> Protecting public interfaces')
         fhconf << '# Protection on public-facing interfaces'
         fhconf << '#----------------'
         ifaces.each do |iface, ifacedef|
@@ -529,11 +558,36 @@ module CfFirehol
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
 
             unless unroutable.empty?
-                unroutable = unroutable.join(',')
-                fhconf << %Q{iptables -t raw -N cfunroute_#{iface}}
-                fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -s "#{unroutable}" -j DROP}
-                fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -d "#{unroutable}" -j DROP}
-                fhconf << %Q{iptables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
+                have_ipv6 = false
+                have_ipv4 = false
+
+                unroutable.each do |net|
+                    if IPAddr.new(net).ipv6?
+                        if not have_ipv6
+                            have_ipv6 = true
+                            fhconf << %Q{ip6tables -t raw -N cfunroute_#{iface}}
+                        end
+                        
+                        fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
+                        fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
+                    else
+                        if not have_ipv4
+                            have_ipv4 = true
+                            fhconf << %Q{iptables -t raw -N cfunroute_#{iface}}
+                        end
+                        
+                        fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
+                        fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
+                    end
+                end
+                
+                if have_ipv6
+                    fhconf << %Q{ip6tables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
+                end
+                
+                if have_ipv4
+                    fhconf << %Q{iptables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
+                end
             end
 
             # synproxy
@@ -568,7 +622,7 @@ module CfFirehol
                     if portdef[:dst].nil? or portdef[:dst].empty?
                         dst = []
                         dst << ifaces[iface][:address] unless ifaces[iface][:address].nil?
-                        dst += ifaces[iface][:extra_address] unless ifaces[iface][:extra_address].nil?
+                        dst += ifaces[iface][:extra_addresses] unless ifaces[iface][:extra_addresses].nil?
 
                         if dst.empty?
                             warning("SYNPROXY requires that dst is set either explicitly " +
@@ -631,6 +685,7 @@ module CfFirehol
         end
         fhconf << ''
 
+        debug('>> Adding NAT')
         fhconf << '# NAT'
         fhconf << '#----------------'
         dnat_ports.each do |v|
@@ -679,11 +734,13 @@ module CfFirehol
         end
         fhconf << ''
 
+        debug('>> Adding custom headers')
         fhconf << '# Custom Headers'
         fhconf << '#----------------'
         fhconf << fhmeta['custom_headers'].join("\n")
         fhconf << ''
 
+        debug('>> Adding IPv6 essentials')
         fhconf << ''
         fhconf << '# IPv6 interop essentials'
         fhconf << '#----------------'
@@ -694,6 +751,7 @@ module CfFirehol
         fhconf << '    policy return'
         fhconf << ''
         
+        debug('>> Adding interfaces')
         fhconf << '# Interfaces'
         fhconf << '#----------------'
         iface_ports.each do |iface, ports|
@@ -769,6 +827,7 @@ module CfFirehol
         end
         fhconf << ''
 
+        debug('>> Adding routers')
         fhconf << '# Routers'
         fhconf << '#----------------'
         router_ports.each do |inface, infacedef|
@@ -846,6 +905,7 @@ module CfFirehol
 
         # Write New FireHOL conf
         #---
+        debug('>> Writing files')
         conftmp = FIREHOL_CONF_FILE + ".#{$$}"
         fhconf = fhconf.join("\n")
         File.open(conftmp, 'w+', 0600 ) do |f|
