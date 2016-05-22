@@ -176,6 +176,7 @@ module CfFirehol
         fhconf << 'FIREHOL_LOG_MODE="NFLOG"'
         fhconf << 'FIREHOL_TRUST_LOOPBACK="0"'
         fhconf << 'FIREHOL_DROP_ORPHAN_TCP_ACK_FIN="1"'
+        fhconf << 'FIREHOL_DROP_ORPHAN_TCP_ACK_RST="1"'
         fhconf << 'FIREHOL_INPUT_ACTIVATION_POLICY="DROP"'
         fhconf << 'FIREHOL_OUTPUT_ACTIVATION_POLICY="DROP"'
         fhconf << 'FIREHOL_FORWARD_ACTIVATION_POLICY="DROP"'
