@@ -18,6 +18,7 @@ class cffirehol::internal::config {
         ip_whitelist    => $ip_whitelist,
         ip_blacklist    => any2array($::cffirehol::ip_blacklist),
         synproxy_public => $::cffirehol::synproxy_public,
+        persistent_dhcp => $::cffirehol::persistent_dhcp,
     }
 
     #---

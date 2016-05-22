@@ -5,6 +5,7 @@ class cffirehol (
     $ip_whitelist = [],
     $ip_blacklist = [],
     $synproxy_public = true,
+    $persistent_dhcp = true,
 ) {
     include stdlib
     require cfnetwork

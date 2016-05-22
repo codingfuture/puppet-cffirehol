@@ -73,6 +73,7 @@ Options:
     Please avoid specifying this parameter. Please update blacklist* ipsets directly.
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
+* `persistent_dhcp` = `true` - assume current DHCP configuration to be persistent for routing
 
 ### cffirehol::debian
 

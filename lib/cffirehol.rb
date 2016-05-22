@@ -46,6 +46,7 @@ module CfFirehol
             'ip_whitelist' => [],
             'ip_blacklist' => [],
             'synproxy_public' => false,
+            'persistent_dhcp' => false,
             'ports' => {},
             'ifaces' => {},
         }
@@ -185,12 +186,14 @@ module CfFirehol
         iface_ports = {}
         ifaces = fhmeta['ifaces'].clone
         custom_services = fhmeta['custom_services'].clone
+        persistent_dhcp = fhmeta['persistent_dhcp']
         router_ports = {}
+        interface_facts = Facter['networking'].value['interfaces']
 
         ifaces['local'] = {
             :device => 'lo',
             :address => '127.0.0.1/8',
-            :extra_addresses => []
+            :extra_addresses => ['::1/128']
         }
         iface_lo = ifaces['local']
 
@@ -199,13 +202,29 @@ module CfFirehol
             unless ifacedef[:gateway].nil?
                 router_ports[iface] = {}
             end
+            
+            if (persistent_dhcp and
+                interface_facts.has_key? ifacedef[:device] and
+                ifacedef[:method].to_s == 'dhcp'
+            ) then
+                iface_fact = interface_facts[ifacedef[:device]]
+                
+                ['bindings', 'bindings6'].each do |bindings|
+                    next if not iface_fact.has_key? bindings
+                    bindings = iface_fact[bindings]
+                    
+                    ifacedef[:extra_addresses] << "#{bindings['address']}/#{bindings['netmask']}"
+                end
+            end
 
             # make sure we found routes to self through lo
             unless ifacedef[:address].nil?
-                iface_lo[:extra_addresses] << ifacedef[:address]
+                iface_lo[:extra_addresses] << ifacedef[:address].split('/')[0]
             end
             unless ifacedef[:extra_addresses].nil?
-                iface_lo[:extra_addresses] += ifacedef[:extra_addresses]
+                ifacedef[:extra_addresses].each do |addr|
+                    iface_lo[:extra_addresses] << addr.split('/')[0]
+                end
             end
         end
         iface_lo[:extra_addresses].map! do |item| strip_mask item end
