@@ -1,6 +1,6 @@
 {
   "name": "codingfuture-cffirehol",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "author": "Andrey Galkin",
   "summary": "Firewall provider for cfnetwork based on FireHOL generator",
   "license": "Apache-2.0",
