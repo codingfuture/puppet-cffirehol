@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.9.9]
+- Updated supported OS list
+
 ## [0.9.8]
 - Added new parameter persistent_dhcp=true - auto-detect routing
 - Fixed to auto-route own addresses with proper mask /32 or /128 through local interface
@@ -57,6 +60,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.9.9](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.9)
 [0.9.8](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.8)
 [0.9.7](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.7)
 [0.9.6](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.6)
