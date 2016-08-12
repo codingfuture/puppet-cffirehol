@@ -3,6 +3,7 @@ class cffirehol::debian::apt {
     if $::cffirehol::debian::firehol_apt_url {
         apt::key {'firehol':
             id      => '5D6CBEBE280C28B18F77C1FEABE831B7ABA014C4',
+            server  => 'not.valid.server',
             content => '
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1

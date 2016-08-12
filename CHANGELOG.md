@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.9.10]
+- Fixed minor Puppet Lanaguage issue appeared with 4.6.0: PUP-6606
+
 ## [0.9.9]
 - Updated supported OS list
 
@@ -60,6 +63,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.9.10](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.10)
 [0.9.9](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.9)
 [0.9.8](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.8)
 [0.9.7](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.7)
