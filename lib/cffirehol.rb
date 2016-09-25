@@ -166,10 +166,12 @@ module CfFirehol
         false
     end
     
-    def self.check_iface(iface, ifaces, type)
-        unless ifaces.has_key? iface
+    def self.map_iface(iface, ifacemap, type)
+        unless ifacemap.has_key? iface
             raise Puppet::DevError, "Unknown #{type} interface: #{iface}"
         end
+        
+        ifacemap[iface]
     end
 
     def self.gen_config()
@@ -210,13 +212,65 @@ module CfFirehol
         persistent_dhcp = fhmeta['persistent_dhcp']
         router_ports = {}
         interface_facts = Facter['networking'].value['interfaces']
+        
+        #---
+        debug('>> Creating iface map for merging')
+        #dev2main = {}
+        iface_map = {}
+        iface_dst = {}
+        ifaces.keys.each do | iface |
+            ifacedef = ifaces[iface]
+            dev = ifacedef[:device]
+            
+            iface_addr = []
+            if not ifacedef[:address].nil?
+                iface_addr << ifacedef[:address]
+            end
+            
+            if not ifacedef[:extra_addresses].nil?
+                iface_addr += ifacedef[:extra_addresses]
+            end
+            
+            iface_dst[iface] = iface_addr.map { |v| v.gsub(/\/[0-9]+$/, '') }
+            
+            <<-COMMENT
+            # merge of ifaces would need to force dst on every rule
+            # let's define several interfaces for one device with
+            # common overall dst rule
+            if dev2main.has_key? dev
+                mainface = dev2main[dev]
+                iface_map[iface] = mainface
+                
+                maindef = ifaces[mainface]
 
+                maindef[:gateway] ||= ifacedef[:gateway]
+                
+                if not iface_addr.empty?
+                    if maindef[:extra_addresses].nil?
+                        maindef[:extra_addresses] = iface_addr
+                    else
+                        maindef[:extra_addresses] += iface_addr
+                    end
+                end
+
+                ifaces.delete iface
+            else
+                dev2main[dev] = iface
+                iface_map[iface] = iface
+            end
+            COMMENT
+            iface_map[iface] = iface
+        end
+
+        #---
         ifaces['local'] = {
             :device => 'lo',
             :address => '127.0.0.1/8',
             :extra_addresses => ['::1/128']
         }
         iface_lo = ifaces['local']
+        iface_map['local'] = 'local'
+        iface_dst['local'] = [ iface_lo[:address] ] + iface_lo[:extra_addresses]
 
         debug('>> Populating local iface')
         ifaces.each do | iface, ifacedef |
@@ -282,6 +336,10 @@ module CfFirehol
                 end
 
                 inface, outface = iface.split('/')
+                
+                inface = map_iface(inface, iface_map, 'DNAT inface')
+                outface = map_iface(outface, iface_map, 'DNAT outface')
+                
                 dnat_ports << portdef.merge({
                     :iface => inface,
                     :port_type => 'server',
@@ -290,8 +348,6 @@ module CfFirehol
                     :dnat_port => true,
                 })
                 
-                check_iface(inface, ifaces, 'DNAT inface')
-                check_iface(outface, ifaces, 'DNAT outface')
 
                 # see cfnetwork::dnat_port type definition
                 if not portdef[:to_port].nil?
@@ -339,7 +395,7 @@ module CfFirehol
                         end
                     end
                 else
-                    check_iface(inface, ifaces, 'router inface')
+                    inface = map_iface(inface, iface_map, 'router inface')
                     infaces << inface
                 end
 
@@ -363,7 +419,7 @@ module CfFirehol
                         end
                     end
                 else
-                    check_iface(outface, ifaces, 'router outface')
+                    outface = map_iface(outface, iface_map, 'router outface')
                     outfaces << outface
                 end
                 
@@ -474,7 +530,7 @@ module CfFirehol
             end
 
             # default
-            check_iface(iface, ifaces, port_type)
+            iface = map_iface(iface, iface_map, port_type)
             iface_ports[iface] ||= []
             iface_ports[iface] << portdef.merge({
                 :port_type => port_type,
@@ -717,8 +773,10 @@ module CfFirehol
             if not (src4.empty? and dst4.empty? and to4.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
+                    dst4, ignore = filter_ipv(iface_dst[inface]) if dst4.empty?
+
                     cmd = %Q{dnat4 to "#{to4}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
-                    cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                    cmd += %Q{ dst "#{dst4}"}
                     cmd += %Q{ src "#{src4}"} unless src4.empty?
                     fhconf << cmd
                 end
@@ -726,8 +784,10 @@ module CfFirehol
             if not (src6.empty? and dst6.empty? and to6.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
+                    ignore, dst6 = filter_ipv(iface_dst[inface]) if dst6.empty?
+                    
                     cmd = %Q{dnat6 to "#{to6}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
-                    cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                    cmd += %Q{ dst "#{dst6}"}
                     cmd += %Q{ src "#{src6}"} unless src6.empty?
                     fhconf << cmd
                 end
@@ -764,8 +824,26 @@ module CfFirehol
                 warning("Ports: " + ports.to_s)
                 next
             end
+            
+            dst = ''
+            interface = 'interface'
+            
+            if dev != 'lo'
+                dst4, dst6 = filter_ipv(iface_dst[iface])
+                
+                if !dst4.empty? and !dst6.empty?
+                    interface = 'interface46'
+                    dst = %Q{ dst4 "#{dst4}" dst6 "#{dst6}"}
+                elsif dst4.empty? and !dst6.empty?
+                    interface = 'interface6'
+                    dst = %Q{ dst "#{dst6}"}
+                elsif !dst4.empty? and dst6.empty?
+                    interface = 'interface4'
+                    dst = %Q{ dst "#{dst4}"}
+                end
+            end
 
-            fhconf << %Q{interface "#{dev}" "#{iface}"}
+            fhconf << %Q{#{interface} "#{dev}" "#{iface}"#{dst}}
 
             if dev == 'lo'
                 fhconf << %Q{    policy reject}
