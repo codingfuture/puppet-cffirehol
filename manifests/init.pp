@@ -1,4 +1,5 @@
 
+# Please see README
 class cffirehol (
     $enable = false,
     $custom_headers = [],

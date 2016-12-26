@@ -1,4 +1,5 @@
 
+# Please see README
 class cffirehol::debian::apt {
     if $::cffirehol::debian::firehol_apt_url {
         apt::key {'firehol':

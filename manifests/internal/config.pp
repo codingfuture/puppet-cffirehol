@@ -1,15 +1,16 @@
 
+# Please see README
 class cffirehol::internal::config {
     #---
     #Cfnetwork::Internal::Exported_port <<| |>>
-    
+
     if $::cfauth::admin_hosts {
         $ip_whitelist = any2array($::cffirehol::ip_whitelist) +
                         any2array($::cfauth::admin_hosts)
     } else {
         $ip_whitelist = any2array($::cffirehol::ip_whitelist)
     }
-    
+
     #---
     cffirehol_config{ 'firehol':
         ensure          => present,

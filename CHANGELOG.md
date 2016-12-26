@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.9.12]
+- Automatic newer puppet-lint fixes
+- Fixed puppet-lint and metadata-json-lint warnings
+
 ## [0.9.11]
 - Security: Fixed to properly handle case of multiple `cfnetwork` interfaces per device
     > Note: now dst IP check is enforced on interface & DNAT level
@@ -67,6 +71,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.9.12](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.12)
 [0.9.11](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.11)
 [0.9.10](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.10)
 [0.9.9](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.9)
