@@ -1,17 +1,21 @@
 
 # Please see README
 class cffirehol (
-    $enable = false,
-    $custom_headers = [],
-    $ip_whitelist = [],
-    $ip_blacklist = [],
-    $synproxy_public = true,
-    $persistent_dhcp = true,
+    Boolean
+        $enable = false,
+    Array[String[1]]
+        $custom_headers = [],
+    Optional[Array[String[1]]]
+        $ip_whitelist = undef,
+    Optional[Array[String[1]]]
+        $ip_blacklist = undef,
+    Boolean
+        $synproxy_public = true,
+    Boolean
+        $persistent_dhcp = true,
 ) {
     include stdlib
     require cfnetwork
-    # required for adminhost whitelist
-    include cfauth
 
     case $::operatingsystem {
         'Debian', 'Ubuntu': { require cffirehol::debian }

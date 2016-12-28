@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.9.12]
+- Added `cfnetwork` 0.9.11+ ipset support
+- Deprecated `ip_whitelist` and `ip_blacklist` in favor of `cfnetwork` approach
+- Added strict paramter type checking
 - Automatic newer puppet-lint fixes
 - Fixed puppet-lint and metadata-json-lint warnings
+- Removed no needed `ipv6error`
 
 ## [0.9.11]
 - Security: Fixed to properly handle case of multiple `cfnetwork` interfaces per device

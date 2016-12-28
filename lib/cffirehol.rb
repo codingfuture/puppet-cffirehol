@@ -21,6 +21,7 @@ module CfFirehol
         '0100::/64',
     ]
     @@unroutable_cache = nil
+    @@ipset_cache = nil
 
     class << self
         attr_accessor :orig_metafile
@@ -49,12 +50,11 @@ module CfFirehol
             'generator_version' => '',
             'custom_services' => {},
             'custom_headers' => [],
-            'ip_whitelist' => [],
-            'ip_blacklist' => [],
             'synproxy_public' => false,
             'persistent_dhcp' => false,
             'ports' => {},
             'ifaces' => {},
+            'ipsets' => {},
         }
         self.orig_config = fhmeta
         self.new_config = fhmeta.clone
@@ -78,22 +78,72 @@ module CfFirehol
 
         fhmeta
     end
+    
+    def self.get_ipset(ip)
+        t = ip.split(':', 2)
+        
+        return nil unless t[0] == 'ipset'
+        
+        name = t[1]
+        ips = @@ipset_cache[name]
+        
+        fail("Unknown ipset '#{name}'") if ips.nil?
+        
+        return ips
+    end
 
-    def self.filter_ipv(arg)
+    def self.filter_ipv(arg, unroll_ipset=false)
         arg = [arg] unless arg.is_a? Array
-        return ['', ''] if arg.empty?
 
         ipv4 = []
         ipv6 = []
-        arg.each do |v|
-            ip = IPAddr.new(v)
-            ipv4 << v if ip.ipv4?
-            ipv6 << v if ip.ipv6?
+        arg.each do |item|
+            ips = get_ipset(item)
+            if ips
+                type = ips[:type]
+
+                if ips[:dynamic] and !unroll_ipset
+                    ipv4 << "#{item}-#{type}4"
+                    ipv6 << "#{item}-#{type}6"
+                else
+                    v4, v6 = filter_ipv(ips[:addr], unroll_ipset)
+                    
+                    if unroll_ipset
+                        ipv4 += v4
+                        ipv6 += v6
+                    else
+                        ipv4 << "#{item}-#{type}4" unless v4.empty?
+                        ipv6 << "#{item}-#{type}6" unless v6.empty?
+                    end
+                end
+            else
+                ip = IPAddr.new(item)
+                ipv4 << item if ip.ipv4?
+                ipv6 << item if ip.ipv6?
+            end
         end
-        [ ipv4.join(' '), ipv6.join(' ') ]
+        
+        [ipv4, ipv6]
+    end
+    
+    def self.filter_ipv_arg(arg)
+        ipv4, ipv6 = filter_ipv(arg)
+        [ipv4.join(' '), ipv6.join(' ')]
     end
 
-    def self.is_routable(ip, to_check)
+    def self.is_routable(addr, to_check)
+        # special processing for IPsets
+        ips = get_ipset(addr)
+        
+        if ips
+            ips[:addr].each do |v|
+                return true if is_routable(v, to_check)
+            end
+            return false
+        end
+        
+        # plain IPs
+        ip = IPAddr.new(addr)
         to_check.each do |cand|
             cand = IPAddr.new(cand)
 
@@ -114,7 +164,6 @@ module CfFirehol
         match = []
         reject = []
         addresses.each do |addr|
-            ip = IPAddr.new(addr)
             to_check = [ iface[:address] ]
             to_check += iface[:extra_addresses] unless iface[:extra_addresses].nil?
 
@@ -124,7 +173,7 @@ module CfFirehol
                 end
             end
 
-            if is_routable(ip, to_check)
+            if is_routable(addr, to_check)
                 match << addr
             else
                 reject << addr
@@ -212,6 +261,28 @@ module CfFirehol
         persistent_dhcp = fhmeta['persistent_dhcp']
         router_ports = {}
         interface_facts = Facter['networking'].value['interfaces']
+
+        #---
+        debug('>> Merging partially defined ipsets')
+        @@ipset_cache = {}
+        fhmeta['ipsets'].each do |n, v|
+            name = n.split(':')[0]
+            
+            if @@ipset_cache.has_key? name
+                ips = @@ipset_cache[name]
+                ips[:addr] += v[:addr]
+                
+                if ips[:type] != v[:type]
+                    warning("Ipset type mismatch for #{n}")
+                end
+                
+                if !ips[:dynamic] and v[:dynamic]
+                    warning("Ipset dynamic mismatch for #{n}")
+                end
+            else
+                @@ipset_cache[name] = v.clone
+            end
+        end
         
         #---
         debug('>> Creating iface map for merging')
@@ -563,39 +634,36 @@ module CfFirehol
         debug('>> Creating ipsets')
         fhconf << '# Setup of ipsets'
         fhconf << '#----------------'
-        ip_whitelist = fhmeta['ip_whitelist']
-        ip_blacklist = fhmeta['ip_blacklist']
-
-        fhconf << %Q{ipset4 create whitelist4 hash:net}
-        fhconf << %Q{ipset6 create whitelist6 hash:net}
-        fhconf << %Q{ipset4 create blacklist4 hash:ip}
-        fhconf << %Q{ipset4 create blacklist4net hash:net}
-        fhconf << %Q{ipset6 create blacklist6net hash:net}
-
-        fhconf << '# note: hardcoded list is not expected to be large'
-        ip_whitelist.each do |ip|
-            cand = IPAddr.new(ip)
-
-            if cand.ipv4?
-                fhconf << %Q{ipset4 add whitelist4 "#{ip}"}
-            elsif cand.ipv6?
-                fhconf << %Q{ipset6 add whitelist6 "#{ip}"}
-            else
-                warning('Unknown whitelist address type: ' + ip)
-            end
+        ['blacklist', 'whitelist'].each do |n|
+            fail("Missing ipset #{n}") unless @@ipset_cache.has_key? n
         end
-        fhconf << ''
-        ip_blacklist.each do |ip|
-            cand = IPAddr.new(ip)
-
-            if cand.ipv4?
-                fhconf << %Q{ipset4 add blacklist4 "#{ip}"}
-            elsif cand.ipv6?
-                fhconf << %Q{ipset6 add blacklist6net "#{ip}"}
-            else
-                warning('Unknown blacklist address type: ' + ip)
+        
+        @@ipset_cache.each do |name, ips|
+            comment = ips[:comment]
+            if comment
+                fhconf << '# ' + comment.sub("\n", ' ')
             end
+                
+            ips4, ips6 = filter_ipv(ips[:addr], true)
+            type = ips[:type]
+            
+            if !ips4.empty? or ips[:dynamic]
+                fhconf << %Q{ipset4 create #{name}-#{type}4 hash:#{type}}
+                
+                ips4.each do |ip|
+                    fhconf << %Q{  ipset add #{name}-#{type}4 "#{ip}"}
+                end
+            end
+            if !ips6.empty? or ips[:dynamic]
+                fhconf << %Q{ipset6 create #{name}-#{type}6 hash:#{type}}
+                
+                ips6.each do |ip|
+                    fhconf << %Q{  ipv6 ipset add #{name}-#{type}6 "#{ip}"}
+                end
+            end
+            fhconf << ''
         end
+
         fhconf << ''
 
         debug('>> Protecting public interfaces')
@@ -608,43 +676,29 @@ module CfFirehol
             address = ifacedef[:address]
 
             # Blacklist
-            fhconf << %Q{blacklist4 input inface "#{dev}" ipset:blacklist4net ipset:blacklist4 except src ipset:whitelist4}
-            fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist6net except src ipset:whitelist6}
+            fhconf << %Q{blacklist4 input inface "#{dev}" ipset:blacklist-net4 except src ipset:whitelist-net4}
+            fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist-net6 except src ipset:whitelist-net6}
 
             # unroutable
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
-
-            unless unroutable.empty?
-                have_ipv6 = false
-                have_ipv4 = false
-
-                unroutable.each do |net|
-                    if IPAddr.new(net).ipv6?
-                        if not have_ipv6
-                            have_ipv6 = true
-                            fhconf << %Q{ip6tables -t raw -N cfunroute_#{iface}}
-                        end
-                        
-                        fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
-                        fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
-                    else
-                        if not have_ipv4
-                            have_ipv4 = true
-                            fhconf << %Q{iptables -t raw -N cfunroute_#{iface}}
-                        end
-                        
-                        fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
-                        fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
-                    end
+            unroutable4, unroutable6 = filter_ipv(unroutable)
+            
+            unless unroutable4.empty?
+                fhconf << %Q{iptables -t raw -N cfunroute_#{iface}}
+                unroutable4.each do |net|
+                    fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
+                    fhconf << %Q{iptables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
                 end
-                
-                if have_ipv6
-                    fhconf << %Q{ip6tables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
+                fhconf << %Q{iptables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
+            end
+            
+            unless unroutable6.empty?
+                fhconf << %Q{ip6tables -t raw -N cfunroute_#{iface}}
+                unroutable6.each do |net|
+                    fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -s "#{net}" -j DROP}
+                    fhconf << %Q{ip6tables -t raw -A cfunroute_#{iface} -d "#{net}" -j DROP}
                 end
-                
-                if have_ipv4
-                    fhconf << %Q{iptables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
-                end
+                fhconf << %Q{ip6tables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
             end
 
             # synproxy
@@ -666,7 +720,7 @@ module CfFirehol
                     server_ports = service[:server_ports]
                     server_ports = [server_ports] unless server_ports.is_a? Array
 
-                    src4, src6 = filter_ipv(portdef[:src] || [])
+                    src4, src6 = filter_ipv_arg(portdef[:src] || [])
 
                     to_port = portdef[:to_port] || nil
                     to_port = ':' + to_port.to_s if not to_port.nil?
@@ -687,13 +741,13 @@ module CfFirehol
                             next
                         end
 
-                        dst4, dst6 = filter_ipv(dst)
+                        dst4, dst6 = filter_ipv_arg(dst)
                     else
-                        dst4, dst6 = filter_ipv(portdef[:dst])
+                        dst4, dst6 = filter_ipv_arg(portdef[:dst])
                     end
 
                     if portdef.has_key? :dnat_port
-                        to4, to6 = filter_ipv(portdef[:to_dst])
+                        to4, to6 = filter_ipv_arg(portdef[:to_dst])
                         synproxy_type = 'forward'
                         synproxy_action4 = %Q{dnat to "#{to4}#{to_port}"}
                         synproxy_action6 = %Q{dnat to "#{to6}#{to_port}"}
@@ -755,9 +809,9 @@ module CfFirehol
             else
                 inface = ''
             end
-            src4, src6 = filter_ipv(v[:src] || [])
-            dst4, dst6 = filter_ipv(v[:dst] || [])
-            to4, to6 = filter_ipv(v[:to_dst])
+            src4, src6 = filter_ipv_arg(v[:src] || [])
+            dst4, dst6 = filter_ipv_arg(v[:dst] || [])
+            to4, to6 = filter_ipv_arg(v[:to_dst])
 
             to_port = v[:to_port] || nil
             to_port = ':' + to_port.to_s if not to_port.nil?
@@ -773,7 +827,7 @@ module CfFirehol
             if not (src4.empty? and dst4.empty? and to4.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
-                    dst4, ignore = filter_ipv(iface_dst[inface]) if dst4.empty?
+                    dst4, ignore = filter_ipv_arg(iface_dst[inface]) if dst4.empty?
 
                     cmd = %Q{dnat4 to "#{to4}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
                     cmd += %Q{ dst "#{dst4}"}
@@ -784,7 +838,7 @@ module CfFirehol
             if not (src6.empty? and dst6.empty? and to6.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
-                    ignore, dst6 = filter_ipv(iface_dst[inface]) if dst6.empty?
+                    ignore, dst6 = filter_ipv_arg(iface_dst[inface]) if dst6.empty?
                     
                     cmd = %Q{dnat6 to "#{to6}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
                     cmd += %Q{ dst "#{dst6}"}
@@ -806,7 +860,6 @@ module CfFirehol
         fhconf << '# IPv6 interop essentials'
         fhconf << '#----------------'
         fhconf << 'ipv6 interface any ipv6interop proto icmpv6'
-        fhconf << '    server6 ipv6error accept'
         fhconf << '    client6 ipv6neigh accept'
         fhconf << '    server6 ipv6neigh accept'
         fhconf << '    policy return'
@@ -827,9 +880,11 @@ module CfFirehol
             
             dst = ''
             interface = 'interface'
+            iface_ipv4 = true
+            iface_ipv6 = true
             
             if dev != 'lo'
-                dst4, dst6 = filter_ipv(iface_dst[iface])
+                dst4, dst6 = filter_ipv_arg(iface_dst[iface])
                 
                 if !dst4.empty? and !dst6.empty?
                     interface = 'interface46'
@@ -837,9 +892,11 @@ module CfFirehol
                 elsif dst4.empty? and !dst6.empty?
                     interface = 'interface6'
                     dst = %Q{ dst "#{dst6}"}
+                    iface_ipv4 = false
                 elsif !dst4.empty? and dst6.empty?
                     interface = 'interface4'
                     dst = %Q{ dst "#{dst4}"}
+                    iface_ipv6 = false
                 end
             end
 
@@ -864,8 +921,8 @@ module CfFirehol
             ports.each do |p|
                 service = p[:service]
                 port_type = p[:port_type]
-                src4, src6 = filter_ipv(p[:src] || [])
-                dst4, dst6 = filter_ipv(p[:dst] || [])
+                src4, src6 = filter_ipv_arg(p[:src] || [])
+                dst4, dst6 = filter_ipv_arg(p[:dst] || [])
                 user = (p[:user] or []).join(' ')
                 group = ( p[:group] or []).join(' ')
 
@@ -880,7 +937,7 @@ module CfFirehol
 
                 do_generic = true
 
-                if not (src4.empty? and dst4.empty?)
+                if iface_ipv4 and not (src4.empty? and dst4.empty?)
                     do_generic = false
                     cmd = %Q{    #{port_type}4 "#{service}" accept}
                     cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
@@ -888,7 +945,7 @@ module CfFirehol
                     cmd += cmd_cond
                     fhconf << cmd
                 end
-                if not (src6.empty? and dst6.empty?)
+                if iface_ipv6 and not (src6.empty? and dst6.empty?)
                     do_generic = false
                     cmd = %Q{    #{port_type}6 "#{service}" accept}
                     cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
@@ -948,8 +1005,8 @@ module CfFirehol
                 outfacedef.each do |p|
                     service = p[:service]
                     port_type = p[:port_type]
-                    src4, src6 = filter_ipv(p[:src] || [])
-                    dst4, dst6 = filter_ipv(p[:dst] || [])
+                    src4, src6 = filter_ipv_arg(p[:src] || [])
+                    dst4, dst6 = filter_ipv_arg(p[:dst] || [])
 
                     comment = p[:comment]
                     if comment

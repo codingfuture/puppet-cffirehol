@@ -66,11 +66,6 @@ Options:
 * `enable` = `false` - if true, FireHOL will be enabled upon deployment.
     *Note: `/etc/firehol/firehol.conf` is always generated*
 * `custom_headers` = `[]` - optional, add custom FireHOL configuration headers
-* `ip_whitelist` = `[]` - optional, add essential IPs to firewall whitelist as exception for blacklist
-    This list is not expected to be large.
-    Note: you still need to open services.
-* `ip_blacklist` = `[]` - optional, add blacklisted IPs.
-    Please avoid specifying this parameter. Please update blacklist* ipsets directly.
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
 * `persistent_dhcp` = `true` - assume current DHCP configuration to be persistent for routing
