@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Updated to use SHA-2 repos for stretch+ and xenial+
 - Added strict parameter type checking
 - Fixed processing of DNAT ports without specified `dst`
+- Changed to always require to_dst parameter for DNAT ports
 - Automatic newer puppet-lint fixes
 - Fixed puppet-lint and metadata-json-lint warnings
 - Removed no needed `ipv6error`

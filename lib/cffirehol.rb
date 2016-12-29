@@ -836,7 +836,7 @@ module CfFirehol
             server_ports = [server_ports] unless server_ports.is_a? Array
             curr_iface_dst = iface_dst[iface]
 
-            if not (src4.empty? and dst4.empty? and to4.empty?)
+            if not to4.empty?
                 server_ports.each do |p|
                     proto, dport = p.split('/')
                     dst4, ignore = filter_ipv_arg(curr_iface_dst) if dst4.empty? and curr_iface_dst
@@ -849,7 +849,7 @@ module CfFirehol
                     fhconf << cmd
                 end
             end
-            if not (src6.empty? and dst6.empty? and to6.empty?)
+            if not to6.empty?
                 server_ports.each do |p|
                     proto, dport = p.split('/')
                     ignore, dst6 = filter_ipv_arg(curr_iface_dst) if dst6.empty? and curr_iface_dst
