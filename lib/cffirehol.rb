@@ -713,9 +713,7 @@ module CfFirehol
             # synproxy
             if fhmeta['synproxy_public']
                 synproxy_candidates = iface_ports[iface] or []
-                synproxy_candidates += dnat_ports.select do |v|
-                    v[:iface] == iface or v[:iface] == 'any'
-                end
+                synproxy_candidates += dnat_ports.select do |v| v[:iface] == iface end
                 # TODO: router_ports that not DNAT-related
                 synproxy_candidates.each do |portdef|
                     next if portdef[:port_type] != 'server'
@@ -759,9 +757,12 @@ module CfFirehol
 
                     if portdef.has_key? :dnat_port
                         to4, to6 = filter_ipv_arg(portdef[:to_dst])
-                        synproxy_type = 'forward'
+                        # NAT still uses input
+                        synproxy_type = 'input'
+                        #synproxy_type = 'forward'
                         synproxy_action4 = %Q{dnat to "#{to4}#{to_port}"}
                         synproxy_action6 = %Q{dnat to "#{to6}#{to_port}"}
+                        portdef[:synproxy] = true
                     else
                         synproxy_type = 'input'
                         synproxy_action4 = 'accept'
@@ -773,13 +774,13 @@ module CfFirehol
                         next unless proto == 'tcp'
 
                         if not dst4.empty?
-                            cmd = %Q{synproxy4 #{synproxy_type} inface #{iface} dst "#{dst4}" dport "#{dport}"}
+                            cmd = %Q{synproxy4 #{synproxy_type} inface #{dev} dst "#{dst4}" dport "#{dport}"}
                             cmd += %Q{ src "#{src4}"} unless src4.empty?
                             cmd += %Q{ #{synproxy_action4}}
                             fhconf << cmd
                         end
                         if not dst6.empty?
-                            cmd = %Q{synproxy6 #{synproxy_type} inface #{iface} dst "#{dst6}" dport "#{dport}"}
+                            cmd = %Q{synproxy6 #{synproxy_type} inface #{dev} dst "#{dst6}" dport "#{dport}"}
                             cmd += %Q{ src "#{src6}"} unless src6.empty?
                             cmd += %Q{ #{synproxy_action6}}
                             fhconf << cmd
@@ -811,6 +812,8 @@ module CfFirehol
         fhconf << '# NAT'
         fhconf << '#----------------'
         dnat_ports.each do |v|
+            next if v[:synproxy]
+            
             iface = v[:iface]
             service = v[:service]
 
@@ -820,8 +823,10 @@ module CfFirehol
             else
                 inface = ''
             end
-            src4, src6 = filter_ipv_arg(v[:src] || [])
-            dst4, dst6 = filter_ipv_arg(v[:dst] || [])
+            src = v[:src] || []
+            dst = v[:dst] || []
+            src4, src6 = filter_ipv_arg(src)
+            dst4, dst6 = filter_ipv_arg(dst)
             to4, to6 = filter_ipv_arg(v[:to_dst])
 
             to_port = v[:to_port] || nil
@@ -836,7 +841,7 @@ module CfFirehol
             server_ports = [server_ports] unless server_ports.is_a? Array
             curr_iface_dst = iface_dst[iface]
 
-            if not to4.empty?
+            if !to4.empty? and (src4.empty? == src.empty?) and  (dst4.empty? == dst.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
                     dst4, ignore = filter_ipv_arg(curr_iface_dst) if dst4.empty? and curr_iface_dst
@@ -849,7 +854,8 @@ module CfFirehol
                     fhconf << cmd
                 end
             end
-            if not to6.empty?
+
+            if !to6.empty? and (src6.empty? == src.empty?) and  (dst6.empty? == dst.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
                     ignore, dst6 = filter_ipv_arg(curr_iface_dst) if dst6.empty? and curr_iface_dst
@@ -1021,8 +1027,10 @@ module CfFirehol
                 outfacedef.each do |p|
                     service = p[:service]
                     port_type = p[:port_type]
-                    src4, src6 = filter_ipv_arg(p[:src] || [])
-                    dst4, dst6 = filter_ipv_arg(p[:dst] || [])
+                    src = p[:src] || []
+                    dst = p[:dst] || []
+                    src4, src6 = filter_ipv_arg(src)
+                    dst4, dst6 = filter_ipv_arg(dst)
 
                     comment = p[:comment]
                     if comment
@@ -1031,14 +1039,20 @@ module CfFirehol
 
                     do_generic = true
 
-                    if not (src4.empty? and dst4.empty?)
+                    if !(src4.empty? and dst4.empty?) and \
+                            (src4.empty? == src.empty?) and \
+                            (dst4.empty? == dst.empty?)
+                    then
                         do_generic = false
                         cmd = %Q{    #{port_type}4 "#{service}" accept}
                         cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
                         cmd += %Q{ src "#{src4}"} unless src4.empty?
                         fhconf << cmd
                     end
-                    if not (src6.empty? and dst6.empty?)
+                    if !(src6.empty? and dst6.empty?) and \
+                            (src6.empty? == src.empty?) and \
+                            (dst6.empty? == dst.empty?)
+                    then
                         do_generic = false
                         cmd = %Q{    #{port_type}6 "#{service}" accept}
                         cmd += %Q{ dst "#{dst6}"} unless dst6.empty?

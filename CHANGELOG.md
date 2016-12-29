@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.9.12]
+- SECURITY FIXES:
+    - Fixed synproxy to properly protect selected interfaces
+    - Fixed DNAT & Forward rules to properly keep src/dst during IP v4/v6 separation
 - Added `cfnetwork` 0.9.11+ ipset support
 - Deprecated `ip_whitelist` and `ip_blacklist` in favor of `cfnetwork` approach
 - Updated to use SHA-2 repos for stretch+ and xenial+
