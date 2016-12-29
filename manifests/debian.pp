@@ -1,9 +1,9 @@
 
 # Please see README
-class cffirehol::debian(
+class cffirehol::debian (
     $firehol_apt_url = 'http://ppa.launchpad.net/andvgal/firehol-bpo/ubuntu',
-    $firehol_apt_release = 'trusty',
-) {
+    $firehol_apt_release = $cffirehol::debian::params::launchpad_release,
+) inherits cffirehol::debian::params {
     include stdlib
     assert_private();
 
