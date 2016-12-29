@@ -123,6 +123,11 @@ module CfFirehol
             end
         end
         
+        if unroll_ipset
+            ipv4.uniq!
+            ipv6.uniq!
+        end
+        
         [ipv4, ipv6]
     end
     
