@@ -1,3 +1,7 @@
+#
+# Copyright 2016 (c) Andrey Galkin
+#
+
 require 'puppet/parameter/boolean'
 require 'puppet/property/boolean'
 

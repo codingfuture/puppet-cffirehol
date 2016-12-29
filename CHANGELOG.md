@@ -7,7 +7,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added `cfnetwork` 0.9.11+ ipset support
 - Deprecated `ip_whitelist` and `ip_blacklist` in favor of `cfnetwork` approach
 - Updated to use SHA-2 repos for stretch+ and xenial+
-- Added strict paramter type checking
+- Added strict parameter type checking
 - Automatic newer puppet-lint fixes
 - Fixed puppet-lint and metadata-json-lint warnings
 - Removed no needed `ipv6error`

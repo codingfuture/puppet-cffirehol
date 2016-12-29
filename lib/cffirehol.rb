@@ -1,3 +1,7 @@
+#
+# Copyright 2016 (c) Andrey Galkin
+#
+
 require 'json'
 require 'ipaddr'
 require 'digest/md5'
