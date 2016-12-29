@@ -713,7 +713,9 @@ module CfFirehol
             # synproxy
             if fhmeta['synproxy_public']
                 synproxy_candidates = iface_ports[iface] or []
-                synproxy_candidates += dnat_ports.select do |v| v[:iface] == iface end
+                synproxy_candidates += dnat_ports.select do |v|
+                    v[:iface] == iface or v[:iface] == 'any'
+                end
                 # TODO: router_ports that not DNAT-related
                 synproxy_candidates.each do |portdef|
                     next if portdef[:port_type] != 'server'
@@ -832,14 +834,17 @@ module CfFirehol
 
             server_ports = custom_services[service][:server_ports]
             server_ports = [server_ports] unless server_ports.is_a? Array
+            curr_iface_dst = iface_dst[iface]
 
             if not (src4.empty? and dst4.empty? and to4.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
-                    dst4, ignore = filter_ipv_arg(iface_dst[inface]) if dst4.empty?
+                    dst4, ignore = filter_ipv_arg(curr_iface_dst) if dst4.empty? and curr_iface_dst
+                    
+                    warning("Missing dst (IPv4) for #{iface} DNAT") if dst4.empty?
 
                     cmd = %Q{dnat4 to "#{to4}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
-                    cmd += %Q{ dst "#{dst4}"}
+                    cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
                     cmd += %Q{ src "#{src4}"} unless src4.empty?
                     fhconf << cmd
                 end
@@ -847,10 +852,12 @@ module CfFirehol
             if not (src6.empty? and dst6.empty? and to6.empty?)
                 server_ports.each do |p|
                     proto, dport = p.split('/')
-                    ignore, dst6 = filter_ipv_arg(iface_dst[inface]) if dst6.empty?
+                    ignore, dst6 = filter_ipv_arg(curr_iface_dst) if dst6.empty? and curr_iface_dst
+                    
+                    warning("Missing dst (IPv6) for #{iface} DNAT") if dst6.empty?
                     
                     cmd = %Q{dnat6 to "#{to6}#{to_port}" #{inface} proto "#{proto}" dport "#{dport}"}
-                    cmd += %Q{ dst "#{dst6}"}
+                    cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
                     cmd += %Q{ src "#{src6}"} unless src6.empty?
                     fhconf << cmd
                 end

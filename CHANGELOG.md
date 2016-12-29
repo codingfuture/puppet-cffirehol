@@ -8,6 +8,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Deprecated `ip_whitelist` and `ip_blacklist` in favor of `cfnetwork` approach
 - Updated to use SHA-2 repos for stretch+ and xenial+
 - Added strict parameter type checking
+- Fixed processing of DNAT ports without specified `dst`
 - Automatic newer puppet-lint fixes
 - Fixed puppet-lint and metadata-json-lint warnings
 - Removed no needed `ipv6error`
