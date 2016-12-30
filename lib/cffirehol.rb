@@ -683,16 +683,15 @@ module CfFirehol
         fhconf << '#----------------'
         ifaces.each do |iface, ifacedef|
             next if is_private_iface ifacedef
-            fhconf << %Q{# #{iface}}
+            
+            fhconf << %Q{# Iface: #{iface}}
+            fhconf << '#---'
             dev = ifacedef[:device]
             address = ifacedef[:address]
 
-            # Blacklist
-            fhconf << %Q{blacklist4 input inface "#{dev}" ipset:blacklist-net4 except src ipset:whitelist-net4}
-            fhconf << %Q{blacklist6 input inface "#{dev}" ipset:blacklist-net6 except src ipset:whitelist-net6}
-
             # unroutable
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
+            routable4, routable6 = filter_ipv(routable)
             unroutable4, unroutable6 = filter_ipv(unroutable)
             
             unless unroutable4.empty?
@@ -712,6 +711,10 @@ module CfFirehol
                 end
                 fhconf << %Q{ip6tables -t raw -A PREROUTING -i "#{dev}" -j cfunroute_#{iface}}
             end
+
+            # Blacklist
+            fhconf << %Q{blacklist4 statefull inface "#{dev}" ipset:blacklist-net4 except src "#{routable4.join(' ')} ipset:whitelist-net4"}
+            fhconf << %Q{blacklist6 statefull inface "#{dev}" ipset:blacklist-net6 except src "#{routable6.join(' ')} ipset:whitelist-net6"}
 
             # synproxy
             if fhmeta['synproxy_public']

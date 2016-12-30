@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.9.13]
 - Changed to silently drop orphan TCP RST, TCP ACK and ICMPv4 destination
     unreachable packets
+- Change blacklist to "stateful" mode instead of "input" only
+- Added routable private nets to exception of iface blacklist (VPS friendly)
 
 ## [0.9.12]
 - SECURITY FIXES:
