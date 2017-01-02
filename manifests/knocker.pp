@@ -16,8 +16,10 @@ define cffirehol::knocker(
 ) {
     include cffirehol::fwknop
 
-    if !defined(Cfnetwork::Ipset[$ipset]) {
-        fail("Cfnetwork::Ipset[${ipset}] must be defined first!")
+    any2array($ipset).each |$ips| {
+        if !defined(Cfnetwork::Ipset[$ips]) {
+            fail("Cfnetwork::Ipset[${ips}] must be defined first!")
+        }
     }
 
     if $cffirehol::fwknop::enable {

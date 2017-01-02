@@ -1,6 +1,6 @@
 <% |
     String[1] $user,
-    String[1] $ipset,
+    Variant[String[1], Array[String[1]]] $ipset,
     String[1] $key_b64,
     String[1] $hmac_key_b64,
     String[1] $helper_bin,
