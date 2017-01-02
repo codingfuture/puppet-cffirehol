@@ -66,6 +66,7 @@ class cffirehol::fwknop(
         file { "/etc/systemd/system/${service}.service":
             mode    => '0644',
             content => epp('cffirehol/cffwknopd.service.epp'),
+            notify  => Exec['cffwknop-systemd-reload'],
         } ->
         file {"/etc/sudoers.d/${user}":
             group   => root,
@@ -86,6 +87,11 @@ ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
             server => "udp/${port}"
         }
         cfnetwork::service_port { 'any:cffwknop': }
+
+        exec { 'cffwknop-systemd-reload':
+            command     => '/bin/systemctl daemon-reload',
+            refreshonly => true,
+        }
     } else {
         package { 'fwknop-server':
             ensure => false
