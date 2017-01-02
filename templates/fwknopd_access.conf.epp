@@ -1,0 +1,24 @@
+<% |
+    String[1] $user,
+    String[1] $ipset,
+    String[1] $key_b64,
+    String[1] $hmac_key_b64,
+    String[1] $helper_bin,
+|-%>
+SOURCE ANY;
+
+KEY_BASE64 <%= $key_b64 %>;
+HMAC_KEY_BASE64 <%= $hmac_key_b64 %>;
+
+HMAC_DIGEST_TYPE sha256;
+
+ENABLE_CMD_EXEC N;
+ENABLE_CMD_SUDO_EXEC N;
+
+CMD_CYCLE_OPEN <%= $helper_bin %> add <%= $ipset %> $IP;
+CMD_CYCLE_CLOSE <%= $helper_bin %> del <%= $ipset %> $IP;
+CMD_CYCLE_TIMER 30;
+
+
+REQUIRE_USERNAME <%= $user %>;
+REQUIRE_SOURCE_ADDRESS Y;

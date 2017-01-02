@@ -8,6 +8,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
     unreachable packets
 - Change blacklist to "stateful" mode instead of "input" only
 - Added routable private nets to exception of iface blacklist (VPS friendly)
+- Implemented `fwknop` port knocking in SPA UDP mode
 
 ## [0.9.12]
 - SECURITY FIXES:

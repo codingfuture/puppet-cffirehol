@@ -53,10 +53,49 @@ Custom Debian/Ubuntu packages for the latest FireHOL and dependencies are availa
 *Note: At the moment, firehol.conf generation is relatively messy and needs to be rewritten
 accompanied by unit tests*
 
+## Notes of Firewall port knocking
+
+There are various port knocking techniques, but interest is only most secure approaches like
+Single Packet Authorization. `fwknop` project was chosen as one of the most mature, used and
+maintained. However, only a very limited subset of the functionality is used for security reasons.
+
+The daemon runs under unprivileged user and is only allowed to manipulate `ipsets` based
+on SPA packet received in UDP server mode.
+
+Current configuration:
+* AES-256
+* HMAC-SHA-256
+* UDP with port from `cffirehol::fwknop::port`
+* User name and keys come from cffirehol::knocker configuration
+
+Suggested `.fwknoprc` configuration:
+
+```
+[default]
+SPA_SERVER_PROTO udp
+USE_HMAC Y
+HMAC_DIGEST_TYPE sha256
+RESOLVE_IP_HTTPS Y
+ACCESS tcp/1
+
+[<server_name>]
+SPA_SERVER <server_address>
+SPA_SERVER_PORT <ffirehol::fwknop::port>
+SPOOF_USER <cffirehol::knocker::user>
+KEY_BASE64 <cffirehol::knocker::key_b64>
+HMAC_KEY_BASE64 <cffirehol::knocker::hmac_key_b64>
+
+```
+
+Suggested command line:
+
+```
+fwknop -R -n myserver -A tcp/22
+```
 
 ## Classes and resources types
 
-### cffirehol
+### class `cffirehol`
 
 The main class. Normally, it is included by bi-directional dependency from cfnetwork based on
 $firewall_provider parameter.
@@ -69,8 +108,9 @@ Options:
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
 * `persistent_dhcp` = `true` - assume current DHCP configuration to be persistent for routing
+* `knockers = {}` - create resources of `cffirehol::knocker`
 
-### cffirehol::debian
+### class `ffirehol::debian`
 
 Debian and Ubuntu specific FireHOL package configuration
 
@@ -78,6 +118,21 @@ Debian and Ubuntu specific FireHOL package configuration
 * `firehol_apt_release` = 'trusty' - OS release
     Note: it is safe to use these Ubuntu packages on Debian of corresponding version (e.g. trusty & jessie have the same roots)
 
+### class `cffirehol::fwknop
+
+Configuration of `fwknopd` FireWall knocking service.
+
+* `$enable = false` - enable `fwknopd` daemon
+* `$port = 62201` - UDP port to use for `fwknopd`
+
+### type `cffirehol::knocker`
+
+Configuration of firewall knocking user.
+
+* `$key_b64` - Base64 encoded key for message digest
+* `$hmac_key_b64` - Base64 encoded key for HMAC
+* `$user = $title` - arbitrary user name for access check
+* `$ipset = 'cfauth_admin'` - ipset to use for dynamic IP add
 
 
 [cfnetwork]: https://github.com/codingfuture/puppet-cfnetwork

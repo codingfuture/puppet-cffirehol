@@ -17,6 +17,8 @@ class cffirehol (
         $synproxy_public = true,
     Boolean
         $persistent_dhcp = true,
+    Hash[String[1], Hash]
+        $knockers = {},
 ) {
     include stdlib
     require cfnetwork
@@ -26,7 +28,8 @@ class cffirehol (
         default: { err("Not supported OS ${::operatingsystem}") }
     }
 
-    require cffirehol::internal::config
+    create_resources('cffirehol::knocker', $knockers)
 
+    require cffirehol::internal::config
 }
 

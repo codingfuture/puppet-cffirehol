@@ -1,0 +1,27 @@
+[Unit]
+Description=CF: Firewall Knock Operator Daemon
+After=network-online.target
+
+[Service]
+
+User=<%= $cffirehol::fwknop::user %>
+Group=<%= $cffirehol::fwknop::group %>
+
+Restart=always
+RestartSec=5
+UMask=0027
+RuntimeDirectory=<%= $cffirehol::fwknop::service %>
+
+CPUAccounting=true
+CPUShares=100
+MemoryAccounting=true
+MemoryLimit=16M
+
+
+Type=forking
+ExecStart=/usr/sbin/fwknopd --access-folder=<%= $cffirehol::fwknop::access_dir %> --config-file=<%= $cffirehol::fwknop::conf_dir %>/fwknopd.conf --no-firewd-check-support --no-ipt-check-support
+ExecReload=/bin/kill -HUP $MAINPID
+
+
+[Install]
+WantedBy=multi-user.target
