@@ -72,10 +72,12 @@ Suggested `.fwknoprc` configuration:
 
 ```
 [default]
+WGET_CMD /usr/bin/wget
 SPA_SERVER_PROTO udp
 USE_HMAC Y
 HMAC_DIGEST_TYPE sha256
 RESOLVE_IP_HTTPS Y
+# just a placeholder for SPA format
 ACCESS tcp/1
 
 [<server_name>]
@@ -132,7 +134,7 @@ Configuration of firewall knocking user.
 * `$key_b64` - Base64 encoded key for message digest
 * `$hmac_key_b64` - Base64 encoded key for HMAC
 * `$user = $title` - arbitrary user name for access check
-* `$ipset = 'cfauth_admin'` - ipset to use for dynamic IP add
+* `$ipset = 'cfauth_admin'` - ipset to use for dynamic IP add, can be array of IP sets
 
 
 [cfnetwork]: https://github.com/codingfuture/puppet-cfnetwork

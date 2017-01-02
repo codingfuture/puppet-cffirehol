@@ -11,7 +11,7 @@ define cffirehol::knocker(
         $hmac_key_b64,
     String[1]
         $user = $title,
-    String[1]
+    Variant[String[1], Array[String[1]]]
         $ipset = 'cfauth_admin',
 ) {
     include cffirehol::fwknop

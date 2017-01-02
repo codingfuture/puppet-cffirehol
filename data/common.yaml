@@ -1,2 +1,4 @@
 ---
-{}
+lookup_options:
+  cffirehol::knockers:
+    merge: deep
