@@ -3,7 +3,8 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.9.13]
+## [0.10.0]
+- Improved IPv6 support
 - Changed to silently drop orphan TCP RST, TCP ACK and ICMPv4 destination
     unreachable packets
 - Change blacklist to "stateful" mode instead of "input" only

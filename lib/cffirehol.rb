@@ -932,18 +932,24 @@ module CfFirehol
 
             if dev == 'lo'
                 fhconf << %Q{    policy reject}
-                fhconf << %Q{    client icmp accept}
-                fhconf << %Q{    server icmp accept}
+                fhconf << %Q{    client4 icmp accept} if iface_ipv4
+                fhconf << %Q{    server4 icmp accept} if iface_ipv4
+                fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
+                fhconf << %Q{    server6 icmpv6 accept} if iface_ipv6
             elsif is_private_iface ifaces[iface]
                 fhconf << %Q{    policy reject}
-                fhconf << %Q{    client icmp accept}
-                fhconf << %Q{    server icmp accept}
+                fhconf << %Q{    client4 icmp accept} if iface_ipv4
+                fhconf << %Q{    server4 icmp accept} if iface_ipv4
+                fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
+                fhconf << %Q{    server6 icmpv6 accept} if iface_ipv6
             else
                 fhconf << %Q{    policy deny}
                 fhconf << %Q{    protection bad-packets}
-                fhconf << %Q{    client icmp accept}
+                fhconf << %Q{    client4 icmp accept} if iface_ipv4
+                fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
                 # NOTE: if IPv6 ping limit produces an error due to chain length
-                fhconf << %Q{    server4 ping accept with hashlimit ping upto 1/s burst 2}
+                fhconf << %Q{    server4 ping accept with hashlimit ping upto 1/s burst 2} if iface_ipv4
+                fhconf << %Q{    server6 ping accept with hashlimit ping upto 1/s burst 2} if iface_ipv6
             end
 
             ports.each do |p|
@@ -1024,10 +1030,12 @@ module CfFirehol
                     fhconf << %Q{    policy drop}
                 end
                 if inprivate
-                    fhconf << %Q{    server icmp accept}
+                    fhconf << %Q{    server4 icmp accept}
+                    fhconf << %Q{    server6 icmpv6 accept}
                 end
                 if outprivate
-                    fhconf << %Q{    client icmp accept}
+                    fhconf << %Q{    client4 icmp accept}
+                    fhconf << %Q{    client6 icmpv6 accept}
                 end
 
                 outfacedef.each do |p|
