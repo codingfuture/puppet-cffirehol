@@ -67,6 +67,7 @@ Current configuration:
 * HMAC-SHA-256
 * UDP with port from `cffirehol::fwknop::port`
 * User name and keys come from cffirehol::knocker configuration
+* IP is automatically added to `whitelist` ipset
 
 Suggested `.fwknoprc` configuration:
 
@@ -124,17 +125,18 @@ Debian and Ubuntu specific FireHOL package configuration
 
 Configuration of `fwknopd` FireWall knocking service.
 
-* `$enable = false` - enable `fwknopd` daemon
-* `$port = 62201` - UDP port to use for `fwknopd`
+* `enable = false` - enable `fwknopd` daemon
+* `port = 62201` - UDP port to use for `fwknopd`
 
 ### type `cffirehol::knocker`
 
 Configuration of firewall knocking user.
 
-* `$key_b64` - Base64 encoded key for message digest
-* `$hmac_key_b64` - Base64 encoded key for HMAC
-* `$user = $title` - arbitrary user name for access check
-* `$ipset = 'cfauth_admin'` - ipset to use for dynamic IP add, can be array of IP sets
+* `key_b64` - Base64 encoded key for message digest
+* `hmac_key_b64` - Base64 encoded key for HMAC
+* `user = $title` - arbitrary user name for access check
+* `ipset = 'cfauth_admin'` - ipset to use for dynamic IP add, can be array of IP sets
+* 'timeout = 3*60*60' - timeout to remove IP after (3 hours by default, 0 - disable)
 
 
 [cfnetwork]: https://github.com/codingfuture/puppet-cfnetwork

@@ -13,6 +13,8 @@ define cffirehol::knocker(
         $user = $title,
     Variant[String[1], Array[String[1]]]
         $ipset = 'cfauth_admin',
+    Integer[0]
+        $timeout = 3*60*60,
 ) {
     include cffirehol::fwknop
 
@@ -29,10 +31,11 @@ define cffirehol::knocker(
             mode    => '0600',
             content => epp('cffirehol/fwknopd_access.conf.epp', {
                 user         => $user,
-                ipset        => $ipset,
+                ipset        => any2array($ipset) + ['whitelist'],
                 key_b64      => $key_b64,
                 hmac_key_b64 => $hmac_key_b64,
                 helper_bin   => $cffirehol::fwknop::helper_bin,
+                timeout      => $timeout,
             }),
             notify  => Service[$cffirehol::fwknop::service],
         }

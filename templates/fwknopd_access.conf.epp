@@ -1,12 +1,13 @@
 <% |
     String[1] $user,
-    Variant[String[1], Array[String[1]]] $ipset,
+    Array[String[1]] $ipset,
     String[1] $key_b64,
     String[1] $hmac_key_b64,
     String[1] $helper_bin,
+    Integer $timeout,
 |
 
-$q_ipset = any2array($ipset).join(' ')
+$q_ipset = $ipset.join(' ')
 %>
 SOURCE ANY;
 
@@ -18,9 +19,13 @@ HMAC_DIGEST_TYPE sha256;
 ENABLE_CMD_EXEC N;
 ENABLE_CMD_SUDO_EXEC N;
 
-CMD_CYCLE_OPEN <%= $helper_bin %> add $IP <%= $q_ipset %>;
-CMD_CYCLE_CLOSE <%= $helper_bin %> del $IP <%= $q_ipset %>;
-CMD_CYCLE_TIMER 30;
+CMD_CYCLE_OPEN <%= $helper_bin %> add $IP $TIMEOUT <%= $q_ipset %>;
+<% if $timeout > 0 { -%>
+CMD_CYCLE_CLOSE <%= $helper_bin %> del $IP $TIMEOUT <%= $q_ipset %>;
+<% } -%>
+CMD_CYCLE_TIMER <%= $timeout %>;
+
+FW_ACCESS_TIMEOUT <%= $timeout %>;
 
 
 REQUIRE_USERNAME <%= $user %>;
