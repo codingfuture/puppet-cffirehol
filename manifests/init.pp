@@ -15,8 +15,6 @@ class cffirehol (
         $ip_blacklist = undef,
     Boolean
         $synproxy_public = true,
-    Boolean
-        $persistent_dhcp = true,
     Hash[String[1], Hash]
         $knockers = {},
 ) {

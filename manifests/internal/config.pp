@@ -22,13 +22,21 @@ class cffirehol::internal::config {
         }
     }
 
+    file { ['/etc/firehol/blacklist4.txt',
+            '/etc/firehol/blacklist6.txt']:
+        ensure  => present,
+        replace => 'no',
+        content => '',
+        mode    => '0600',
+        notify  => Cffirehol_config['firehol'],
+    }
+
     #---
     cffirehol_config{ 'firehol':
         ensure          => present,
         enable          => $::cffirehol::enable,
         custom_headers  => any2array($::cffirehol::custom_headers),
         synproxy_public => $::cffirehol::synproxy_public,
-        persistent_dhcp => $::cffirehol::persistent_dhcp,
     }
 
     #---

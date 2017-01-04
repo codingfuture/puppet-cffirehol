@@ -31,10 +31,4 @@ Puppet::Type.newtype(:cffirehol_config) do
         desc "Enable TCP SynProxy on all services on the public interface"
         defaultto false
     end
-    
-    newproperty(:persistent_dhcp, :boolean => true, :parent=>Puppet::Property::Boolean) do
-        desc "Assume persistent DHCP configuration"
-        defaultto false
-    end
-
 end

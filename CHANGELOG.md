@@ -4,12 +4,18 @@ All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.10.0]
+- SECURITY FIXES
+    - Additional fixes to properly handle v4/v6 separation
 - Improved IPv6 support
 - Changed to silently drop orphan TCP RST, TCP ACK and ICMPv4 destination
     unreachable packets
 - Change blacklist to "stateful" mode instead of "input" only
 - Added routable private nets to exception of iface blacklist (VPS friendly)
 - Implemented `fwknop` port knocking in SPA UDP mode
+- Removed 'persistent_dhcp' flag and reworked DHCP interface support
+- Fixed IPv6 SNAT/MASQ
+- Added support of "network" interface addresses (e.g. for link-local)
+- Added /etc/firehol/blacklist[46].txt - placeholders for startup loading
 
 ## [0.9.12]
 - SECURITY FIXES:

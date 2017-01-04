@@ -110,7 +110,6 @@ Options:
 * `custom_headers` = `[]` - optional, add custom FireHOL configuration headers
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
-* `persistent_dhcp` = `true` - assume current DHCP configuration to be persistent for routing
 * `knockers = {}` - create resources of `cffirehol::knocker`
 
 ### class `ffirehol::debian`

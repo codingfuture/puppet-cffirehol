@@ -19,7 +19,7 @@ module CfFirehol
         '192.168.0.0/16',
         '224.0.0.0/4',
         '127.0.0.1/8',
-        #'::1/128',
+        '::1/128',
         #'fe80::/10',
         'fc00::/7',
         '0100::/64',
@@ -55,7 +55,6 @@ module CfFirehol
             'custom_services' => {},
             'custom_headers' => [],
             'synproxy_public' => false,
-            'persistent_dhcp' => false,
             'ports' => {},
             'ifaces' => {},
             'ipsets' => {},
@@ -193,7 +192,15 @@ module CfFirehol
     end
 
     def self.strip_mask(ip)
-        return ip.split('/')[0]
+        addr, mask = ip.split('/', 2)
+        
+        if IPAddr.new(ip).to_string == IPAddr.new(addr).to_string
+            # This is a wildcard address, CIDR is required
+            return ip
+        else
+            # This is a single address
+            return addr
+        end
     end
 
     def self.is_private_iface(ifacedef)
@@ -270,9 +277,7 @@ module CfFirehol
         iface_ports = {}
         ifaces = fhmeta['ifaces'].clone
         custom_services = fhmeta['custom_services'].clone
-        persistent_dhcp = fhmeta['persistent_dhcp']
         router_ports = {}
-        interface_facts = Facter['networking'].value['interfaces']
 
         #---
         debug('>> Merging partially defined ipsets')
@@ -306,15 +311,21 @@ module CfFirehol
             dev = ifacedef[:device]
             
             iface_addr = []
-            if not ifacedef[:address].nil?
-                iface_addr << ifacedef[:address]
+            
+            if ifacedef[:method].to_s != 'dhcp'
+                if not ifacedef[:address].nil?
+                    iface_addr << ifacedef[:address]
+                end
+                
+                if not ifacedef[:extra_addresses].nil?
+                    iface_addr += ifacedef[:extra_addresses]
+                end
+                
+                iface_addr = iface_addr.map { |v| strip_mask v }
+                iface_addr.uniq!
             end
             
-            if not ifacedef[:extra_addresses].nil?
-                iface_addr += ifacedef[:extra_addresses]
-            end
-            
-            iface_dst[iface] = iface_addr.map { |v| v.gsub(/\/[0-9]+$/, '') }
+            iface_dst[iface] = iface_addr
             
             <<-COMMENT
             # merge of ifaces would need to force dst on every rule
@@ -362,22 +373,6 @@ module CfFirehol
             # make sure gateway ifaces a always first in router pairs
             unless ifacedef[:gateway].nil?
                 router_ports[iface] = {}
-            end
-            
-            if (persistent_dhcp and
-                interface_facts.has_key? ifacedef[:device] and
-                ifacedef[:method].to_s == 'dhcp' and
-                ifacedef[:address].nil?
-            ) then
-                iface_fact = interface_facts[ifacedef[:device]]
-                
-                ['bindings', 'bindings6'].each do |bindings|
-                    next if not iface_fact.has_key? bindings
-                    ifacedef[:extra_addresses] = [] if ifacedef[:extra_addresses].nil?
-                    iface_fact[bindings].each do |binfo|
-                        ifacedef[:extra_addresses] << (binfo['address']+'/'+binfo['netmask'])
-                    end
-                end
             end
 
             # make sure we found routes to self through lo
@@ -659,22 +654,23 @@ module CfFirehol
             ips4, ips6 = filter_ipv(ips[:addr], true)
             type = ips[:type]
             
-            if !ips4.empty? or ips[:dynamic]
-                fhconf << %Q{ipset4 create #{name}-#{type}4 hash:#{type}}
-                
-                ips4.each do |ip|
-                    fhconf << %Q{  ipset add #{name}-#{type}4 "#{ip}"}
-                end
+            fhconf << %Q{ipset4 create #{name}-#{type}4 hash:#{type}}
+            
+            ips4.each do |ip|
+                fhconf << %Q{  ipset add #{name}-#{type}4 "#{ip}"}
             end
-            if !ips6.empty? or ips[:dynamic]
-                fhconf << %Q{ipset6 create #{name}-#{type}6 hash:#{type}}
-                
-                ips6.each do |ip|
-                    fhconf << %Q{  ipv6 ipset add #{name}-#{type}6 "#{ip}"}
-                end
+
+            fhconf << %Q{ipset6 create #{name}-#{type}6 hash:#{type}}
+            
+            ips6.each do |ip|
+                fhconf << %Q{  ipv6 ipset add #{name}-#{type}6 "#{ip}"}
             end
             fhconf << ''
         end
+        
+        # Large dynamic blacklist
+        fhconf << %Q{ipset4 addfile blacklist-net4 blacklist4.txt}
+        fhconf << %Q{ipset6 addfile blacklist-net6 blacklist6.txt}
 
         fhconf << ''
 
@@ -735,7 +731,8 @@ module CfFirehol
                     server_ports = service[:server_ports]
                     server_ports = [server_ports] unless server_ports.is_a? Array
 
-                    src4, src6 = filter_ipv_arg(portdef[:src] || [])
+                    src = portdef[:src] || []
+                    src4, src6 = filter_ipv_arg(src)
 
                     to_port = portdef[:to_port] || nil
                     to_port = ':' + to_port.to_s if not to_port.nil?
@@ -779,13 +776,13 @@ module CfFirehol
                         proto, dport = p.split('/')
                         next unless proto == 'tcp'
 
-                        if not dst4.empty?
+                        if !dst4.empty? and (src4.empty? == src.empty?)
                             cmd = %Q{synproxy4 #{synproxy_type} inface #{dev} dst "#{dst4}" dport "#{dport}"}
                             cmd += %Q{ src "#{src4}"} unless src4.empty?
                             cmd += %Q{ #{synproxy_action4}}
                             fhconf << cmd
                         end
-                        if not dst6.empty?
+                        if !dst6.empty? and (src6.empty? == src.empty?)
                             cmd = %Q{synproxy6 #{synproxy_type} inface #{dev} dst "#{dst6}" dport "#{dport}"}
                             cmd += %Q{ src "#{src6}"} unless src6.empty?
                             cmd += %Q{ #{synproxy_action6}}
@@ -801,14 +798,17 @@ module CfFirehol
             else
                 addr_list = [address]
                 addr_list += ifacedef[:extra_addresses] unless ifacedef[:extra_addresses].nil?
-                addr_list.map! do |item| strip_mask item end # strip mask
-                address = addr_list[0]
+                addr4_list, addr6_list = filter_ipv(addr_list)
+                addr4_list.map! do |item| strip_mask item end # strip mask
+                address = addr4_list[0]
 
-                addr_list = addr_list.join(',')
+                addr4_list = addr4_list.join(',')
                 fhconf << %Q{iptables -t nat -N cfpost_snat_#{iface}}
-                fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -s #{addr_list} -j RETURN}
+                fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -s #{addr4_list} -j RETURN}
                 fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -j SNAT --to-source=#{address}}
                 fhconf << %Q{iptables -t nat -A POSTROUTING -o "#{dev}" -j cfpost_snat_#{iface}}
+                
+                fhconf << %Q{ip6tables -t nat -A POSTROUTING -o "#{dev}" -j MASQUERADE}
             end
             fhconf << ''
         end
@@ -947,16 +947,18 @@ module CfFirehol
                 fhconf << %Q{    protection bad-packets}
                 fhconf << %Q{    client4 icmp accept} if iface_ipv4
                 fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
-                # NOTE: if IPv6 ping limit produces an error due to chain length
-                fhconf << %Q{    server4 ping accept with hashlimit ping upto 1/s burst 2} if iface_ipv4
-                fhconf << %Q{    server6 ping accept with hashlimit ping upto 1/s burst 2} if iface_ipv6
+
+                fhconf << %Q{    server4 ping accept with hashlimit P4 upto 1/s burst 2} if iface_ipv4
+                fhconf << %Q{    server6 ping accept with hashlimit P6 upto 1/s burst 2} if iface_ipv6
             end
 
             ports.each do |p|
                 service = p[:service]
                 port_type = p[:port_type]
-                src4, src6 = filter_ipv_arg(p[:src] || [])
-                dst4, dst6 = filter_ipv_arg(p[:dst] || [])
+                src = p[:src] || []
+                dst = p[:dst] || []
+                src4, src6 = filter_ipv_arg(src)
+                dst4, dst6 = filter_ipv_arg(dst)
                 user = (p[:user] or []).join(' ')
                 group = ( p[:group] or []).join(' ')
 
@@ -969,28 +971,32 @@ module CfFirehol
                     fhconf << '    # ' + comment.sub("\n", ' ')
                 end
 
-                do_generic = true
-
-                if iface_ipv4 and not (src4.empty? and dst4.empty?)
-                    do_generic = false
-                    cmd = %Q{    #{port_type}4 "#{service}" accept}
-                    cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                    cmd += %Q{ src "#{src4}"} unless src4.empty?
-                    cmd += cmd_cond
-                    fhconf << cmd
-                end
-                if iface_ipv6 and not (src6.empty? and dst6.empty?)
-                    do_generic = false
-                    cmd = %Q{    #{port_type}6 "#{service}" accept}
-                    cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                    cmd += %Q{ src "#{src6}"} unless src6.empty?
-                    cmd += cmd_cond
-                    fhconf << cmd
-                end
-                if do_generic
+                if src.empty? and dst.empty?
                     cmd = %Q{    #{port_type} "#{service}" accept}
                     cmd += cmd_cond
                     fhconf << cmd
+                else
+                    if iface_ipv4 and !(src4.empty? and dst4.empty?) and \
+                                (src4.empty? == src.empty?) and \
+                                (dst4.empty? == dst.empty?)
+                    then
+                        cmd = %Q{    #{port_type}4 "#{service}" accept}
+                        cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                        cmd += %Q{ src "#{src4}"} unless src4.empty?
+                        cmd += cmd_cond
+                        fhconf << cmd
+                    end
+                    
+                    if iface_ipv6 and !(src6.empty? and dst6.empty?) and \
+                                (src6.empty? == src.empty?) and \
+                                (dst6.empty? == dst.empty?)
+                    then
+                        cmd = %Q{    #{port_type}6 "#{service}" accept}
+                        cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                        cmd += %Q{ src "#{src6}"} unless src6.empty?
+                        cmd += cmd_cond
+                        fhconf << cmd
+                    end
                 end
             end
             fhconf << ''
@@ -1051,30 +1057,28 @@ module CfFirehol
                         fhconf << '    # ' + comment.sub("\n", ' ')
                     end
 
-                    do_generic = true
-
-                    if !(src4.empty? and dst4.empty?) and \
-                            (src4.empty? == src.empty?) and \
-                            (dst4.empty? == dst.empty?)
-                    then
-                        do_generic = false
-                        cmd = %Q{    #{port_type}4 "#{service}" accept}
-                        cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                        cmd += %Q{ src "#{src4}"} unless src4.empty?
-                        fhconf << cmd
-                    end
-                    if !(src6.empty? and dst6.empty?) and \
-                            (src6.empty? == src.empty?) and \
-                            (dst6.empty? == dst.empty?)
-                    then
-                        do_generic = false
-                        cmd = %Q{    #{port_type}6 "#{service}" accept}
-                        cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                        cmd += %Q{ src "#{src6}"} unless src6.empty?
-                        fhconf << cmd
-                    end
-                    if do_generic
+                    if src.empty? and dst.empty?
                         fhconf << %Q{    #{port_type} "#{service}" accept}
+                    else
+                        if !(src4.empty? and dst4.empty?) and \
+                                (src4.empty? == src.empty?) and \
+                                (dst4.empty? == dst.empty?)
+                        then
+                            cmd = %Q{    #{port_type}4 "#{service}" accept}
+                            cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                            cmd += %Q{ src "#{src4}"} unless src4.empty?
+                            fhconf << cmd
+                        end
+
+                        if !(src6.empty? and dst6.empty?) and \
+                                (src6.empty? == src.empty?) and \
+                                (dst6.empty? == dst.empty?)
+                        then
+                            cmd = %Q{    #{port_type}6 "#{service}" accept}
+                            cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                            cmd += %Q{ src "#{src6}"} unless src6.empty?
+                            fhconf << cmd
+                        end
                     end
                 end
                 fhconf << ''
