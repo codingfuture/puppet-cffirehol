@@ -16,6 +16,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed IPv6 SNAT/MASQ
 - Added support of "network" interface addresses (e.g. for link-local)
 - Added /etc/firehol/blacklist[46].txt - placeholders for startup loading
+- Now, *public* 'main' interface is allowed to received packets from
+    any interface (solves router cases)
 
 ## [0.9.12]
 - SECURITY FIXES:
