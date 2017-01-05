@@ -641,7 +641,7 @@ module CfFirehol
         debug('>> Creating ipsets')
         fhconf << '# Setup of ipsets'
         fhconf << '#----------------'
-        ['blacklist', 'whitelist'].each do |n|
+        ['dynblacklist', 'blacklist', 'whitelist'].each do |n|
             fail("Missing ipset #{n}") unless @@ipset_cache.has_key? n
         end
         
@@ -669,8 +669,8 @@ module CfFirehol
         end
         
         # Large dynamic blacklist
-        fhconf << %Q{ipset4 addfile blacklist-net4 blacklist4.txt}
-        fhconf << %Q{ipset6 addfile blacklist-net6 blacklist6.txt}
+        fhconf << %Q{ipset4 addfile dynblacklist-net4 dynblacklist4.netset}
+        fhconf << %Q{ipset6 addfile dynblacklist-net6 dynblacklist6.netset}
 
         fhconf << ''
 
@@ -709,8 +709,8 @@ module CfFirehol
             end
 
             # Blacklist
-            fhconf << %Q{blacklist4 statefull inface "#{dev}" ipset:blacklist-net4 except src "#{routable4.join(' ')} ipset:whitelist-net4"}
-            fhconf << %Q{blacklist6 statefull inface "#{dev}" ipset:blacklist-net6 except src "#{routable6.join(' ')} ipset:whitelist-net6"}
+            fhconf << %Q{blacklist4 statefull inface "#{dev}" "ipset:blacklist-net4 ipset:dynblacklist-net4" except src "#{routable4.join(' ')} ipset:whitelist-net4"}
+            fhconf << %Q{blacklist6 statefull inface "#{dev}" "ipset:blacklist-net6 ipset:dynblacklist-net6" except src "#{routable6.join(' ')} ipset:whitelist-net6"}
 
             # synproxy
             if fhmeta['synproxy_public']

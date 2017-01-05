@@ -18,6 +18,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added /etc/firehol/blacklist[46].txt - placeholders for startup loading
 - Now, *public* 'main' interface is allowed to received packets from
     any interface (solves router cases)
+- Implemented dynamic blacklist support
 
 ## [0.9.12]
 - SECURITY FIXES:

@@ -8,6 +8,14 @@ Allmost all configuration is done through abstract `cfnetwork::*` resources, exc
 
 **By default, firewall is disabled!**
 
+Features:
+
+* Generic iptables
+* SYNPROXY support
+* Static & dynamic blacklists with whitelist exceptions
+* Single Packet Authorization (SPA) secure port knocking with fwknopd
+* Dynamic blacklists
+
 The proper deployment procedure should be:
 
 * Add `codingfuture/cfnetwork` and `codingfuture/cffirehol` to R10K Puppetfile (or install manually)
@@ -111,6 +119,7 @@ Options:
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
 * `knockers = {}` - create resources of `cffirehol::knocker`
+* `dynamic_blacklist = false` - enables `cffirehol::dynblacklist`
 
 ### class `ffirehol::debian`
 
@@ -136,6 +145,20 @@ Configuration of firewall knocking user.
 * `user = $title` - arbitrary user name for access check
 * `ipset = 'cfauth_admin'` - ipset to use for dynamic IP add, can be array of IP sets
 * 'timeout = 3*60*60' - timeout to remove IP after (3 hours by default, 0 - disable)
+
+### type `cffirehol::dynblacklist`
+
+Configuration of dynamic blacklist.
+
+* `blacklists4 = ['dependencies of firehol-level1']` - list of blacklists to enable for IPv4
+    - NOTE: there is problem of enabling list with dependency on other lists
+* `blacklists6 = []` - list of blacklists to enable for IPv6
+    - Not supported until: https://github.com/firehol/firehol/issues/182
+* `blacklist_cron = { minute => '*/10' }` - cron resource default configuration for automatic updates
+* `addon_ipsets = {}` - list of "name" => "conf file content" to extend built-in blacklist config
+* `custom_update = undef` - arbitrary command to generate $custom_*_file files
+* `custom_netset4_file = undef` - path to external IPv4 blacklist, if any
+* `custom_netset6_file = undef` - path to external IPv6 blacklist, if any
 
 
 [cfnetwork]: https://github.com/codingfuture/puppet-cfnetwork

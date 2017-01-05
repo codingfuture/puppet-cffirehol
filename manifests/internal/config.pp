@@ -11,19 +11,25 @@ class cffirehol::internal::config {
     if $::cffirehol::ip_whitelist {
         cfnetwork::ipset { 'whitelist:cffirehol':
             type => 'net',
-            addr => $::cfauth::admin_hosts,
+            addr => $::cffirehol::ip_whitelist,
         }
     }
 
     if $::cffirehol::ip_blacklist {
         cfnetwork::ipset { 'blacklist:cffirehol':
             type => 'net',
-            addr => $::cfauth::admin_hosts,
+            addr => $::cffirehol::ip_blacklist,
         }
     }
 
-    file { ['/etc/firehol/blacklist4.txt',
-            '/etc/firehol/blacklist6.txt']:
+    cfnetwork::ipset { 'dynblacklist':
+        type    => 'net',
+        addr    => [],
+        dynamic => true,
+    }
+
+    file { [$cffirehol::blacklist4_file,
+            $cffirehol::blacklist6_file]:
         ensure  => present,
         replace => 'no',
         content => '',

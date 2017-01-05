@@ -1,0 +1,112 @@
+#!/bin/bash
+#--------------------------------------
+# This is automatically generated script by cffirehol.
+# DO NOT edit
+#--------------------------------------
+# Update previously enabled ipsets and reload firehol list
+#--------------------------------------
+
+<%
+$user = $cffirehol::dynblacklist::user
+$blacklists = $cffirehol::dynblacklist::blacklists
+$blacklists4 = $cffirehol::dynblacklist::blacklists4
+$blacklists6 = $cffirehol::dynblacklist::blacklists6
+$user_dir = $cffirehol::dynblacklist::root_dir
+$ipsets_dir = $cffirehol::dynblacklist::ipsets_dir
+
+$bl4_files = ($blacklists4.map |$bl|{
+    "${ipsets_dir}/${bl}.*set"
+}).join(" \\\n                ")
+$bl6_files = ($blacklists6.map |$bl|{
+    "${ipsets_dir}/${bl}.*set"
+}).join(" \\\n                ")
+
+$bl4_merge = "${user_dir}/bl4.netset"
+$bl6_merge = "${user_dir}/bl6.netset"
+
+$blacklist4_file = $cffirehol::blacklist4_file
+$blacklist6_file = $cffirehol::blacklist6_file
+-%>
+
+function reload_ipset()
+{
+    local name=$1
+    local src_f=$2
+    local dst_f=$3
+    local name_tmp="${name}-tmp"
+    local dst_ftmp="${dst_f}.tmp"
+    
+    /usr/bin/diff -u $dst_f $src_f && return || true
+    
+    set -e
+    echo "Reloading: ${name}"
+    
+    local head=$(/sbin/ipset save $name | 
+        /usr/bin/head -n1 |
+        /bin/sed -e "s/${name}/${name_tmp}/g")
+    
+    # prepare
+    /bin/cp -f $src_f $dst_ftmp
+    /sbin/ipset destroy $name_tmp >/dev/null 2>&1 || true
+    
+    # create new
+    /sbin/ipset $head
+    
+    while read l; do
+        echo "add ${name_tmp} $l"
+    done <$dst_ftmp | /sbin/ipset restore
+    
+    # complete
+    /sbin/ipset swap ${name}-tmp ${name}
+    /sbin/ipset destroy ${name}-tmp
+    /bin/mv -f $dst_ftmp $dst_f
+    
+    echo "Done: ${name}"
+}
+
+(
+    flock -n 200 || (
+        echo "Dynamic blacklist lock is already acquired!";
+        exit 1
+    )
+    
+    set -e
+    
+<% if $cffirehol::dynblacklist::custom_update { -%>
+    <%= $cffirehol::dynblacklist::custom_update %>
+<% } else { -%>
+    echo ><%= $user_dir %>/custom4.netset
+    echo ><%= $user_dir %>/custom6.netset
+<% } -%>
+    
+<% if $cffirehol::dynblacklist::custom_netset4_file { -%>
+    /bin/cp -f <%= $cffirehol::dynblacklist::custom_netset4_file %> <%= $user_dir %>/custom4.netset
+<% } else { -%>
+    echo ><%= $user_dir %>/custom4.netset
+<% } -%>
+    
+<% if $cffirehol::dynblacklist::custom_netset6_file { -%>
+    /bin/cp -f <%= $cffirehol::dynblacklist::custom_netset6_file %> <%= $user_dir %>/custom6.netset
+<% } else { -%>
+    echo ><%= $user_dir %>/custom6.netset
+<% } -%>
+    
+    /bin/chown <%= $user %> <%= $user_dir %>/custom4.netset <%= $user_dir %>/custom6.netset
+    
+    /usr/bin/sudo -H -u <%= $user %> bash -e <<EOT
+        /usr/sbin/update-ipsets -s enable <%= $blacklists.join(' ') %> >/dev/null 2>&1
+        /usr/sbin/update-ipsets -s run <%= $blacklists.join(' ') %> >/dev/null 2>&1
+        /usr/bin/iprange --optimize \
+                <%= $bl4_files %> \
+                <%= $user_dir %>/custom4.netset \
+                ><%= $bl4_merge %>
+        /usr/bin/iprange --optimize \
+                <%= $bl6_files %> \
+                <%= $user_dir %>/custom6.netset \
+                ><%= $bl6_merge %>
+EOT
+
+    reload_ipset dynblacklist-net4 <%= $bl4_merge %> <%= $blacklist4_file %>
+    reload_ipset dynblacklist-net6 <%= $bl6_merge %> <%= $blacklist6_file %>
+
+) 200>/etc/firehol/.update.lock

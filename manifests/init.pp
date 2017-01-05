@@ -17,9 +17,14 @@ class cffirehol (
         $synproxy_public = true,
     Hash[String[1], Hash]
         $knockers = {},
+    Boolean
+        $dynamic_blacklist = false,
 ) {
     include stdlib
     require cfnetwork
+
+    $blacklist4_file = '/etc/firehol/dynblacklist4.netset'
+    $blacklist6_file = '/etc/firehol/dynblacklist6.netset'
 
     case $::operatingsystem {
         'Debian', 'Ubuntu': { require cffirehol::debian }
@@ -29,5 +34,9 @@ class cffirehol (
     create_resources('cffirehol::knocker', $knockers)
 
     require cffirehol::internal::config
+
+    if $dynamic_blacklist {
+        include cffirehol::dynblacklist
+    }
 }
 
