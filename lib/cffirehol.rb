@@ -897,7 +897,7 @@ module CfFirehol
         fhconf << '# Interfaces'
         fhconf << '#----------------'
         iface_ports.each do |iface, ports|
-            if !is_private_iface(ifaces[iface]) and iface_dst[iface]
+            if !is_private_iface(ifaces[iface]) and !iface_dst[iface].empty?
                 warning("'#{iface}' iface is public => packets can arrive on any interface")
                 dev = 'any'
             elsif ifaces.has_key?(iface)
