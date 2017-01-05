@@ -19,6 +19,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Now, *public* interface with static configuration is allowed
     to received packets from any interface (solves router cases)
 - Implemented dynamic blacklist support
+- Added security warning on added, but not enabled cffirehol
 
 ## [0.9.12]
 - SECURITY FIXES:

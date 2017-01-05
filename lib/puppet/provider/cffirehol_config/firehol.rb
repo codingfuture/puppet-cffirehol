@@ -68,6 +68,10 @@ Puppet::Type.type(:cffirehol_config).provide(
                 FileUtils.rm_f(restart_file)
             end
         end
+        
+        if !@resource[:enable]
+            warning('SECURITY WARNING!!! cffirehol is added, but not enabled')
+        end
     end
     
     def self.getMetaIndex
