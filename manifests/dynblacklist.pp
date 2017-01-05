@@ -37,15 +37,16 @@ class cffirehol::dynblacklist(
 ) {
     assert_private()
 
+    $cron_update = 'cffirehol-update-blacklist'
+    $update_blacklist = '/etc/firehol/update_blacklist.sh'
+
     if $enable {
         $user = 'cfblacklist'
         $root_dir = "/home/${user}"
         $state_dir = "${root_dir}/.update-ipsets"
         $addon_ipset_dir = "${state_dir}/ipsets.d"
         $ipsets_dir = "${root_dir}/ipsets"
-        $cron_update = 'cffirehol-update-blacklist'
         $blacklists = $blacklists4 + $blacklists6
-        $update_blacklist = '/etc/firehol/update_blacklist.sh'
 
         ensure_packages(['unzip'])
         group { $user: ensure => present } ->
@@ -115,5 +116,11 @@ class cffirehol::dynblacklist(
                 user => 'root',
             },
         }, $blacklist_cron)
+    } else {
+        cron { [$cron_update, $update_blacklist]:
+            ensure => absent,
+            user   => 'root',
+        }
+        file { $update_blacklist: ensure => absent }
     }
 }
