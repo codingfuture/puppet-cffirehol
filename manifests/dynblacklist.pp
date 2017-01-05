@@ -4,6 +4,8 @@
 
 
 class cffirehol::dynblacklist(
+    Boolean
+        $enable = false,
     Array[String[1]]
         $blacklists4 = [
             # firehol-level1
@@ -35,82 +37,83 @@ class cffirehol::dynblacklist(
 ) {
     assert_private()
 
-    $user = 'cfblacklist'
-    $root_dir = "/home/${user}"
-    $state_dir = "${root_dir}/.update-ipsets"
-    $addon_ipset_dir = "${state_dir}/ipsets.d"
-    $ipsets_dir = "${root_dir}/ipsets"
-    $cron_update = 'cffirehol-update-blacklist'
+    if $enable {
+        $user = 'cfblacklist'
+        $root_dir = "/home/${user}"
+        $state_dir = "${root_dir}/.update-ipsets"
+        $addon_ipset_dir = "${state_dir}/ipsets.d"
+        $ipsets_dir = "${root_dir}/ipsets"
+        $cron_update = 'cffirehol-update-blacklist'
+        $blacklists = $blacklists4 + $blacklists6
+        $update_blacklist = '/etc/firehol/update_blacklist.sh'
 
-    ensure_packages(['unzip'])
-    group { $user: ensure => present } ->
-    user { $user:
-        ensure         => present,
-        gid            => $user,
-        managehome     => true,
-        home           => $root_dir,
-        purge_ssh_keys => true,
-        shell          => '/bin/bash',
-    } ->
-    file { [$root_dir, $state_dir, $addon_ipset_dir]:
-        ensure => directory,
-        owner  => $user,
-        group  => $user,
-        mode   => '0700',
-    }
-
-    cfnetwork::client_port { ['any:http:cffirehol',
-                              'any:https:cffirehol']:
-        user => $user,
-    }
-
-    # Addon ipset configuration
-    #---
-    $addon_ipsets.each |$n, $v| {
-        file { "${addon_ipset_dir}/${n}.conf":
-            owner   => $user,
-            group   => $user,
-            mode    => '0600',
-            content => $v,
+        ensure_packages(['unzip'])
+        group { $user: ensure => present } ->
+        user { $user:
+            ensure         => present,
+            gid            => $user,
+            managehome     => true,
+            home           => $root_dir,
+            purge_ssh_keys => true,
+            shell          => '/bin/bash',
+        } ->
+        file { [$root_dir, $state_dir, $addon_ipset_dir]:
+            ensure => directory,
+            owner  => $user,
+            group  => $user,
+            mode   => '0700',
         }
-    }
 
-    # enable ipsets
-    #---
-    $blacklists6.each |$bl| {
-        fail('IPv6 blacklists are not supported by update-ipsets yet :(')
-    }
-
-    $blacklists = $blacklists4 + $blacklists6
-
-    $blacklists.each |$bl| {
-        exec { "cffirehol-init-bl-${bl}":
-            command => [
-                "/usr/bin/sudo -H -u ${user} ",
-                    "/usr/sbin/update-ipsets -s enable ${bl}",
-            ].join(''),
-            creates => "${ipsets_dir}/${bl}.source",
-            require => [
-                File[$root_dir],
-                User[$user],
-                Cffirehol_config['firehol'],
-                Package['unzip'],
-            ],
-            notify  => Cron[$cron_update],
+        cfnetwork::client_port { ['any:http:cffirehol',
+                                'any:https:cffirehol']:
+            user => $user,
         }
-    }
 
-    # Updates
-    #---
-    $update_blacklist = '/etc/firehol/update_blacklist.sh'
-    file { $update_blacklist:
-        mode    => '0700',
-        content => epp('cffirehol/update_blacklist.sh.epp'),
+        # Addon ipset configuration
+        #---
+        $addon_ipsets.each |$n, $v| {
+            file { "${addon_ipset_dir}/${n}.conf":
+                owner   => $user,
+                group   => $user,
+                mode    => '0600',
+                content => $v,
+            }
+        }
+
+        # enable ipsets
+        #---
+        $blacklists6.each |$bl| {
+            fail('IPv6 blacklists are not supported by update-ipsets yet :(')
+        }
+
+        $blacklists.each |$bl| {
+            exec { "cffirehol-init-bl-${bl}":
+                command => [
+                    "/usr/bin/sudo -H -u ${user} ",
+                        "/usr/sbin/update-ipsets -s enable ${bl}",
+                ].join(''),
+                creates => "${ipsets_dir}/${bl}.source",
+                require => [
+                    File[$root_dir],
+                    User[$user],
+                    Cffirehol_config['firehol'],
+                    Package['unzip'],
+                ],
+                notify  => Cron[$cron_update],
+            }
+        }
+
+        # Updates
+        #---
+        file { $update_blacklist:
+            mode    => '0700',
+            content => epp('cffirehol/update_blacklist.sh.epp'),
+        }
+        create_resources('cron', {
+            $cron_update => {
+                command => $update_blacklist,
+                user => 'root',
+            },
+        }, $blacklist_cron)
     }
-    create_resources('cron', {
-        $cron_update => {
-            command => $update_blacklist,
-            user => 'root',
-        },
-    }, $blacklist_cron)
 }

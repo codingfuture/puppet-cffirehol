@@ -119,7 +119,6 @@ Options:
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
 * `knockers = {}` - create resources of `cffirehol::knocker`
-* `dynamic_blacklist = false` - enables `cffirehol::dynblacklist`
 
 ### class `ffirehol::debian`
 
@@ -150,6 +149,7 @@ Configuration of firewall knocking user.
 
 Configuration of dynamic blacklist.
 
+* `enable = false` - enables `cffirehol::dynblacklist`
 * `blacklists4 = ['dependencies of firehol-level1']` - list of blacklists to enable for IPv4
     - NOTE: there is problem of enabling list with dependency on other lists
 * `blacklists6 = []` - list of blacklists to enable for IPv6

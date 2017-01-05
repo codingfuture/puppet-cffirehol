@@ -17,8 +17,6 @@ class cffirehol (
         $synproxy_public = true,
     Hash[String[1], Hash]
         $knockers = {},
-    Boolean
-        $dynamic_blacklist = false,
 ) {
     include stdlib
     require cfnetwork
@@ -34,9 +32,6 @@ class cffirehol (
     create_resources('cffirehol::knocker', $knockers)
 
     require cffirehol::internal::config
-
-    if $dynamic_blacklist {
-        include cffirehol::dynblacklist
-    }
+    require cffirehol::dynblacklist
 }
 
