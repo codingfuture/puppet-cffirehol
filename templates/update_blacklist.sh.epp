@@ -47,6 +47,7 @@ function reload_ipset()
     
     # prepare
     /bin/cp -f $src_f $dst_ftmp
+    /bin/chmod 0600 $dst_ftmp
     /sbin/ipset destroy $name_tmp >/dev/null 2>&1 || true
     
     # create new
