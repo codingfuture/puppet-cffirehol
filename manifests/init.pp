@@ -21,6 +21,7 @@ class cffirehol (
     include stdlib
     require cfnetwork
 
+    $service = 'firehol'
     $blacklist4_file = '/etc/firehol/dynblacklist4.netset'
     $blacklist6_file = '/etc/firehol/dynblacklist6.netset'
 
@@ -33,5 +34,10 @@ class cffirehol (
 
     require cffirehol::internal::config
     require cffirehol::dynblacklist
+
+    exec { 'cffirehol-systemd-reload':
+        command     => '/bin/systemctl daemon-reload',
+        refreshonly => true,
+    }
 }
 

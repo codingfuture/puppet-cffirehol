@@ -22,15 +22,4 @@ class cffirehol::debian (
     package { 'iptables-persistent': ensure => absent }
     package { 'netfilter-persistent': ensure => absent }
     package { 'ufw': ensure => absent }
-
-
-    if $::cffirehol::enable {
-        file_line { 'firehol_enable':
-            ensure  => present,
-            path    => '/etc/default/firehol',
-            line    => 'START_FIREHOL=YES',
-            match   => 'START_FIREHOL=NO',
-            replace => true,
-        }
-    }
 }

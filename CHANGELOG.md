@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.1]
+- Implemneted proper firehol systemd unit
+
 ## [0.10.0]
 - SECURITY FIXES
     - Additional fixes to properly handle v4/v6 separation
@@ -99,6 +102,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.10.1](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.1)
+[0.10.0](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.0)
 [0.9.13](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.13)
 [0.9.12](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.12)
 [0.9.11](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.11)

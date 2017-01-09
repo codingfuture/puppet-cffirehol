@@ -1,0 +1,16 @@
+<% |
+    String $before
+|-%>
+[Unit]
+Description=CF: FireHOL stateful packet filtering firewall for humans
+Before=network-pre.target <%= $before %>
+Wants=network-pre.target <%= $before %>
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/firehol start
+ExecStop=/usr/sbin/firehol stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

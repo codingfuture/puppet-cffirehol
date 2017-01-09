@@ -45,6 +45,23 @@ class cffirehol::internal::config {
         synproxy_public => $::cffirehol::synproxy_public,
     }
 
+    #--
+    file { "/etc/systemd/system/${cffirehol::service}.service":
+        mode    => '0644',
+        content => epp('cffirehol/firehol.service', {
+            before => ''
+        }),
+        notify  => Exec['cffirehol-systemd-reload'],
+    }
+    service { $cffirehol::service:
+        ensure  => $::cffirehol::enable,
+        enable  => $::cffirehol::enable,
+        require => [
+            Cffirehol_config['firehol'],
+            File["/etc/systemd/system/${cffirehol::service}.service"],
+        ],
+    }
+
     #---
     Cfnetwork_firewall_iface <| |> ->
         Cfnetwork_firewall_ipset <| |> ->
