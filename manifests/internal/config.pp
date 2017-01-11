@@ -46,6 +46,9 @@ class cffirehol::internal::config {
     }
 
     #--
+    file { "/etc/init.d/${cffirehol::service}":
+        ensure => absent,
+    } ->
     file { "/etc/systemd/system/${cffirehol::service}.service":
         mode    => '0644',
         content => epp('cffirehol/firehol.service', {
