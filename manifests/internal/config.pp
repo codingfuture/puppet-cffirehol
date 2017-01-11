@@ -54,9 +54,10 @@ class cffirehol::internal::config {
         notify  => Exec['cffirehol-systemd-reload'],
     }
     service { $cffirehol::service:
-        ensure  => $::cffirehol::enable,
-        enable  => $::cffirehol::enable,
-        require => [
+        ensure   => $::cffirehol::enable,
+        enable   => $::cffirehol::enable,
+        provider => 'systemd',
+        require  => [
             Cffirehol_config['firehol'],
             File["/etc/systemd/system/${cffirehol::service}.service"],
         ],
@@ -69,4 +70,8 @@ class cffirehol::internal::config {
         Cfnetwork_firewall_port <| |> ->
         Cffirehol_config['firehol']
 
+    if defined(Service[$cfnetwork::dns_service_name]) {
+        Service[$cfnetwork::dns_service_name] ->
+            Cffirehol_config['firehol']
+    }
 }

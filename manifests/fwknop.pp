@@ -32,8 +32,9 @@ class cffirehol::fwknop(
         } ->
         package { 'fwknop-server': } ->
         service { 'fwknop-server':
-            ensure => false,
-            enable => false,
+            ensure   => false,
+            enable   => false,
+            provider => 'systemd',
         } ->
         file { $conf_dir:
             ensure  => directory,
@@ -79,8 +80,9 @@ ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
             require => Package['sudo'],
         } ->
         service { $service:
-            ensure => running,
-            enable => true,
+            ensure   => running,
+            enable   => true,
+            provider => 'systemd',
         }
 
         cfnetwork::describe_service { 'cffwknop':
