@@ -3,8 +3,8 @@
 |-%>
 [Unit]
 Description=CF: FireHOL stateful packet filtering firewall for humans
-Before=network-pre.target <%= $before %>
-Wants=network-pre.target <%= $before %>
+Before=network-pre.target network.target <%= $before %>
+Wants=network-pre.target network.target <%= $before %>
 
 [Service]
 Type=oneshot
