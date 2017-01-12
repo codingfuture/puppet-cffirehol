@@ -5,6 +5,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.10.1]
 - Implemneted proper firehol systemd unit
+- Updated to cfnetwork 0.10.1
 
 ## [0.10.0]
 - SECURITY FIXES
