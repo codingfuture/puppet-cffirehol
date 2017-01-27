@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.2]
+- Fixed to strip interface address mask on synproxy protected port without
+    explicit destination
+
 ## [0.10.1]
 - Implemneted proper firehol systemd unit
 - Updated to cfnetwork 0.10.1
@@ -103,6 +107,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.10.2](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.2)
 [0.10.1](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.1)
 [0.10.0](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.0)
 [0.9.13](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.9.13)

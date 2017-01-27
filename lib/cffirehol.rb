@@ -321,7 +321,7 @@ module CfFirehol
                     iface_addr += ifacedef[:extra_addresses]
                 end
                 
-                iface_addr = iface_addr.map { |v| strip_mask v }
+                iface_addr.map! { |v| strip_mask v }
                 iface_addr.uniq!
             end
             
@@ -752,6 +752,8 @@ module CfFirehol
                                     "or through iface static address: " + portdef.to_s)
                             next
                         end
+
+                        dst.map! { |v| strip_mask v }
 
                         dst4, dst6 = filter_ipv_arg(dst)
                     else
