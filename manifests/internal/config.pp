@@ -71,7 +71,8 @@ class cffirehol::internal::config {
         Cfnetwork_firewall_ipset <| |> ->
         Cfnetwork_firewall_service <| |> ->
         Cfnetwork_firewall_port <| |> ->
-        Cffirehol_config['firehol']
+        Cffirehol_config['firehol'] ->
+        Anchor['cfnetwork:firewall']
 
     if defined(Service[$cfnetwork::dns_service_name]) {
         Service[$cfnetwork::dns_service_name] ->
