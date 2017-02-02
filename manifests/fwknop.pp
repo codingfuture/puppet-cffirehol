@@ -72,7 +72,7 @@ class cffirehol::fwknop(
         file {"/etc/sudoers.d/${user}":
             group   => root,
             owner   => root,
-            mode    => '0400',
+            mode    => '0440',
             replace => true,
             content => "
 ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
