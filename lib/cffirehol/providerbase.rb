@@ -37,7 +37,7 @@ class CfFirehol::ProviderBase < Puppet::Provider
             end
             
             params[:name] = k
-            params[:ensure] = :exists
+            params[:ensure] = :present
             
             instances << self.new(params)
         end
@@ -78,12 +78,12 @@ class CfFirehol::ProviderBase < Puppet::Provider
     
     def flush
         debug('flush')
-        ensure_val = @property_hash[:ensure]
+        ensure_val = @property_hash[:ensure] || @resource[:ensure]
             
         case ensure_val 
         when :absent
             write_config(@resource[:name], nil)
-        when :present, :exists
+        when :present
             properties = {}
             self.class.resource_type.validproperties.each do |property|
                 next if property == :ensure
@@ -112,10 +112,8 @@ class CfFirehol::ProviderBase < Puppet::Provider
     def exists?
         debug('exists?')
         
-        if @property_hash[:ensure] = :exists
-            flush
-        end
-        
-        @property_hash[:ensure] != :absent
+        ensure_val = @property_hash[:ensure] || @resource[:ensure]
+        flush if ensure_val == :present
+        ensure_val != :absent
     end
 end

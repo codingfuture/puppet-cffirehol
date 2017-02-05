@@ -5,6 +5,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.11.0]
 - Added cfnetwork:firewall anchor support
+- Fixed a long standing issues with "exists" in ensure processing
+- Optimized implicit multi-to-multi dependency list with resource capture
 
 ## [0.10.2]
 - Fixed to strip interface address mask on synproxy protected port without
