@@ -67,7 +67,8 @@ class cffirehol::internal::config {
     }
 
     #---
-    Cfnetwork_firewall_iface <| |> ->
+    Anchor['cfnetwork:pre-firewall'] ->
+        Cfnetwork_firewall_iface <| |> ->
         anchor { 'cffirehol:sep:iface': } ->
         Cfnetwork_firewall_ipset <| |> ->
         anchor { 'cffirehol:sep:ipset': } ->
