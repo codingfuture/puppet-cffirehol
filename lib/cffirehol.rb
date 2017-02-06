@@ -120,7 +120,20 @@ module CfFirehol
                     end
                 end
             else
-                ip = IPAddr.new(item)
+                begin
+                    ip = IPAddr.new(item)
+                rescue
+                    begin
+                        ip = IPAddr.new(Resolv.getaddress item)
+                    rescue
+                        begin
+                            ip = IPAddr.new(Resolv.new.getaddress item)
+                        rescue
+                            err("Failed host: #{item}")
+                            next
+                        end
+                    end
+                end
                 ipv4 << item if ip.ipv4?
                 ipv6 << item if ip.ipv6?
             end
@@ -151,7 +164,21 @@ module CfFirehol
         end
         
         # plain IPs
-        ip = IPAddr.new(addr)
+        begin
+            ip = IPAddr.new(addr)
+        rescue
+            begin
+                ip = IPAddr.new(Resolv.getaddress addr)
+            rescue
+                begin
+                    ip = IPAddr.new(Resolv.new.getaddress addr)
+                rescue
+                    err("Failed host: #{addr}")
+                    return false
+                end
+            end
+        end
+
         to_check.each do |cand|
             cand = IPAddr.new(cand)
 
