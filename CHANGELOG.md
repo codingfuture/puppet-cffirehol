@@ -7,6 +7,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added cfnetwork:firewall & cfnetwork:pre-firewall anchors support
 - Fixed a long standing issues with "exists" in ensure processing
 - Optimized implicit multi-to-multi dependency list with resource capture
+- Fixed old problem of not processed firewall on first run
 
 ## [0.10.2]
 - Fixed to strip interface address mask on synproxy protected port without

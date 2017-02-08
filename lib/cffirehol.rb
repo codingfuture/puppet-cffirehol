@@ -60,7 +60,7 @@ module CfFirehol
             'ipsets' => {},
         }
         self.orig_config = fhmeta
-        self.new_config = fhmeta.clone
+        self.new_config = JSON.parse(JSON.generate(fhmeta.clone)) # deep clone
 
         return fhmeta if not File.exist?(FIREHOL_META_FILE)
 
