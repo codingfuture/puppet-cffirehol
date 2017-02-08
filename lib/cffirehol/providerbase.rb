@@ -42,7 +42,7 @@ class CfFirehol::ProviderBase < Puppet::Provider
             instances << self.new(params)
         end
         
-        debug('Instances:' + instances.to_s)
+        #debug('Instances:' + instances.to_s)
         instances
     end
     
@@ -73,7 +73,7 @@ class CfFirehol::ProviderBase < Puppet::Provider
             fhmeta_type.delete(name)
         end
 
-        debug(fhmeta)
+        #debug(fhmeta)
     end
     
     def flush

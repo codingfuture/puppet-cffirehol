@@ -29,7 +29,7 @@ Puppet::Type.type(:cffirehol_config).provide(
             :enable => fhmeta['enable'],
         )
         
-        debug('Instances:' + instances.to_s)
+        #debug('Instances:' + instances.to_s)
         instances
     end
     
