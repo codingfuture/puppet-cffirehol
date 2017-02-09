@@ -26,6 +26,7 @@ module CfFirehol
     ]
     @@unroutable_cache = nil
     @@ipset_cache = nil
+    @@needs_reconf = false
 
     class << self
         attr_accessor :orig_metafile
@@ -130,6 +131,7 @@ module CfFirehol
                             ip = IPAddr.new(Resolv.new.getaddress item)
                         rescue
                             err("Failed host: #{item}")
+                            @@needs_reconf = true
                             next
                         end
                     end
@@ -174,6 +176,7 @@ module CfFirehol
                     ip = IPAddr.new(Resolv.new.getaddress addr)
                 rescue
                     err("Failed host: #{addr}")
+                    @@needs_reconf = true
                     return false
                 end
             end
@@ -275,6 +278,8 @@ module CfFirehol
             debug('Meta files match, no need to reconfigure')
             return false
         end
+        
+        @@needs_reconf = false
 
         notice('Regenerating: %s' % FIREHOL_CONF_FILE)
         debug('Gen config: ' + fhmeta.to_s)
@@ -1118,6 +1123,11 @@ module CfFirehol
         end
         fhconf << ''
 
+        #
+        if @@needs_reconf
+            fhmeta['needs_reconf'] = true
+            metafile = JSON.pretty_generate(fhmeta)
+        end
 
         # Write New FireHOL conf
         #---
