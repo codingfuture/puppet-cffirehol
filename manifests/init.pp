@@ -34,10 +34,5 @@ class cffirehol (
 
     require cffirehol::internal::config
     require cffirehol::dynblacklist
-
-    exec { 'cffirehol-systemd-reload':
-        command     => '/bin/systemctl daemon-reload',
-        refreshonly => true,
-    }
 }
 

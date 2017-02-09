@@ -67,7 +67,7 @@ class cffirehol::fwknop(
         file { "/etc/systemd/system/${service}.service":
             mode    => '0644',
             content => epp('cffirehol/cffwknopd.service.epp'),
-            notify  => Exec['cffirehol-systemd-reload'],
+            notify  => Exec['cfnetwork-systemd-reload'],
         } ->
         file {"/etc/sudoers.d/${user}":
             group   => root,

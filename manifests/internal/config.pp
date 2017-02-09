@@ -54,7 +54,7 @@ class cffirehol::internal::config {
         content => epp('cffirehol/firehol.service', {
             before => ''
         }),
-        notify  => Exec['cffirehol-systemd-reload'],
+        notify  => Exec['cfnetwork-systemd-reload'],
     }
     service { $cffirehol::service:
         ensure   => $::cffirehol::enable,
