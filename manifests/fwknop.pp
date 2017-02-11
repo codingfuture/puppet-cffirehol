@@ -7,7 +7,7 @@
 class cffirehol::fwknop(
     Boolean
         $enable = false,
-    Integer[1, 65535]
+    Cfnetwork::Port
         $port = 62201, # the default of fwknopd
 ) {
     if $enable {
