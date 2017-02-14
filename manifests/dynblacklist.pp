@@ -112,7 +112,7 @@ class cffirehol::dynblacklist(
         }
         create_resources('cron', {
             $cron_update => {
-                command => $update_blacklist,
+                command => "${update_blacklist} >/dev/null",
                 user => 'root',
             },
         }, $blacklist_cron)

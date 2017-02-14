@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.11.1]
+- Changed dynblacklist cron not to send emails with regular updates
+
 ## [0.11.0]
 - Added cfnetwork:firewall & cfnetwork:pre-firewall anchors support
 - Fixed a long standing issues with "exists" in ensure processing
