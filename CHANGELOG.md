@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.11.2]
+- Changed to allow ESTABLISHED connection to ports protected by 
+    dynamic SRC ipset. Solves dropped connections after fwknop
+    address expiration.
+
 ## [0.11.1]
 - Changed dynblacklist cron not to send emails with regular updates
 
@@ -116,6 +121,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial release
 
+[0.11.2](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.2)
 [0.11.1](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.1)
 [0.11.0](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.0)
 [0.10.2](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.10.2)

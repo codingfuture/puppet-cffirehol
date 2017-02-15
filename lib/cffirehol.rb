@@ -101,6 +101,7 @@ module CfFirehol
 
         ipv4 = []
         ipv6 = []
+        have_dyn = false
         arg.each do |item|
             ips = get_ipset(item)
             if ips
@@ -109,6 +110,7 @@ module CfFirehol
                 if ips[:dynamic] and !unroll_ipset
                     ipv4 << "#{item}-#{type}4"
                     ipv6 << "#{item}-#{type}6"
+                    have_dyn = true
                 else
                     v4, v6 = filter_ipv(ips[:addr], unroll_ipset)
                     
@@ -141,17 +143,15 @@ module CfFirehol
             end
         end
         
-        if unroll_ipset
-            ipv4.uniq!
-            ipv6.uniq!
-        end
-        
-        [ipv4, ipv6]
+        ipv4.uniq!
+        ipv6.uniq!
+
+        [ipv4, ipv6, have_dyn]
     end
     
     def self.filter_ipv_arg(arg)
-        ipv4, ipv6 = filter_ipv(arg)
-        [ipv4.join(' '), ipv6.join(' ')]
+        ipv4, ipv6, have_dyn = filter_ipv(arg)
+        [ipv4.join(' '), ipv6.join(' '), have_dyn]
     end
 
     def self.is_routable(addr, to_check)
@@ -994,8 +994,6 @@ module CfFirehol
                 port_type = p[:port_type]
                 src = p[:src] || []
                 dst = p[:dst] || []
-                src4, src6 = filter_ipv_arg(src)
-                dst4, dst6 = filter_ipv_arg(dst)
                 user = (p[:user] or []).join(' ')
                 group = ( p[:group] or []).join(' ')
 
@@ -1013,6 +1011,9 @@ module CfFirehol
                     cmd += cmd_cond
                     fhconf << cmd
                 else
+                    src4, src6, dyn_src = filter_ipv_arg(src)
+                    dst4, dst6 = filter_ipv_arg(dst)
+                    
                     if iface_ipv4 and !(src4.empty? and dst4.empty?) and \
                                 (src4.empty? == src.empty?) and \
                                 (dst4.empty? == dst.empty?)
@@ -1022,6 +1023,14 @@ module CfFirehol
                         cmd += %Q{ src "#{src4}"} unless src4.empty?
                         cmd += cmd_cond
                         fhconf << cmd
+                        
+                        if dyn_src
+                            cmd = %Q{    #{port_type}4 "#{service}" accept}
+                            cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                            cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                            cmd += cmd_cond
+                            fhconf << cmd
+                        end
                     end
                     
                     if iface_ipv6 and !(src6.empty? and dst6.empty?) and \
@@ -1033,6 +1042,14 @@ module CfFirehol
                         cmd += %Q{ src "#{src6}"} unless src6.empty?
                         cmd += cmd_cond
                         fhconf << cmd
+                        
+                        if dyn_src
+                            cmd = %Q{    #{port_type}6 "#{service}" accept}
+                            cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                            cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                            cmd += cmd_cond
+                            fhconf << cmd
+                        end
                     end
                 end
             end
@@ -1086,8 +1103,6 @@ module CfFirehol
                     port_type = p[:port_type]
                     src = p[:src] || []
                     dst = p[:dst] || []
-                    src4, src6 = filter_ipv_arg(src)
-                    dst4, dst6 = filter_ipv_arg(dst)
 
                     comment = p[:comment]
                     if comment
@@ -1097,6 +1112,9 @@ module CfFirehol
                     if src.empty? and dst.empty?
                         fhconf << %Q{    #{port_type} "#{service}" accept}
                     else
+                        src4, src6, dyn_src = filter_ipv_arg(src)
+                        dst4, dst6 = filter_ipv_arg(dst)
+                        
                         if !(src4.empty? and dst4.empty?) and \
                                 (src4.empty? == src.empty?) and \
                                 (dst4.empty? == dst.empty?)
@@ -1105,6 +1123,13 @@ module CfFirehol
                             cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
                             cmd += %Q{ src "#{src4}"} unless src4.empty?
                             fhconf << cmd
+                            
+                            if dyn_src
+                                cmd = %Q{    #{port_type}4 "#{service}" accept}
+                                cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                                cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                                fhconf << cmd
+                            end
                         end
 
                         if !(src6.empty? and dst6.empty?) and \
@@ -1115,6 +1140,13 @@ module CfFirehol
                             cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
                             cmd += %Q{ src "#{src6}"} unless src6.empty?
                             fhconf << cmd
+                            
+                            if dyn_src
+                                cmd = %Q{    #{port_type}6 "#{service}" accept}
+                                cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                                cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                                fhconf << cmd
+                            end
                         end
                     end
                 end
