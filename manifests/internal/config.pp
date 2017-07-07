@@ -48,8 +48,8 @@ class cffirehol::internal::config {
     #--
     file { "/etc/init.d/${cffirehol::service}":
         ensure => absent,
-    } ->
-    file { "/etc/systemd/system/${cffirehol::service}.service":
+    }
+    -> file { "/etc/systemd/system/${cffirehol::service}.service":
         mode    => '0644',
         content => epp('cffirehol/firehol.service', {
             before => ''
@@ -79,7 +79,7 @@ class cffirehol::internal::config {
         Anchor['cfnetwork:firewall']
 
     if defined(Service[$cfnetwork::dns_service_name]) {
-        Service[$cfnetwork::dns_service_name] ->
-            Cffirehol_config['firehol']
+        Service[$cfnetwork::dns_service_name]
+            -> Cffirehol_config['firehol']
     }
 }

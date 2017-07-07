@@ -49,16 +49,16 @@ class cffirehol::dynblacklist(
         $blacklists = $blacklists4 + $blacklists6
 
         ensure_packages(['unzip'])
-        group { $user: ensure => present } ->
-        user { $user:
+        group { $user: ensure => present }
+        -> user { $user:
             ensure         => present,
             gid            => $user,
             managehome     => true,
             home           => $root_dir,
             purge_ssh_keys => true,
             shell          => '/bin/bash',
-        } ->
-        file { [$root_dir, $state_dir, $addon_ipset_dir]:
+        }
+        -> file { [$root_dir, $state_dir, $addon_ipset_dir]:
             ensure => directory,
             owner  => $user,
             group  => $user,

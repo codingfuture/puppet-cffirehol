@@ -24,52 +24,52 @@ class cffirehol::fwknop(
 
         group { $group:
             ensure => present,
-        } ->
-        user { $user:
+        }
+        -> user { $user:
             ensure  => present,
             gid     => $group,
             require => Group[$group]
-        } ->
-        package { 'fwknop-server': } ->
-        service { 'fwknop-server':
+        }
+        -> package { 'fwknop-server': }
+        -> service { 'fwknop-server':
             ensure   => false,
             enable   => false,
             provider => 'systemd',
-        } ->
-        file { $conf_dir:
+        }
+        -> file { $conf_dir:
             ensure  => directory,
             owner   => $user,
             group   => $group,
             mode    => '0700',
             purge   => true,
             recurse => true,
-        } ->
-        file { $access_dir:
+        }
+        -> file { $access_dir:
             ensure  => directory,
             owner   => $user,
             group   => $group,
             mode    => '0700',
             purge   => true,
             recurse => true,
-        } ->
-        file { $helper_bin:
+        }
+        -> file { $helper_bin:
             owner   => $user,
             group   => $group,
             mode    => '0700',
             content => file('cffirehol/cf_fwknop_ipset_helper.sh'),
-        } ->
-        file { "${conf_dir}/fwknopd.conf":
+        }
+        -> file { "${conf_dir}/fwknopd.conf":
             owner   => $user,
             group   => $group,
             mode    => '0600',
             content => epp('cffirehol/fwknopd.conf.epp'),
-        } ->
-        file { "/etc/systemd/system/${service}.service":
+        }
+        -> file { "/etc/systemd/system/${service}.service":
             mode    => '0644',
             content => epp('cffirehol/cffwknopd.service.epp'),
             notify  => Exec['cfnetwork-systemd-reload'],
-        } ->
-        file {"/etc/sudoers.d/${user}":
+        }
+        -> file {"/etc/sudoers.d/${user}":
             group   => root,
             owner   => root,
             mode    => '0440',
@@ -78,8 +78,8 @@ class cffirehol::fwknop(
 ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
 ",
             require => Package['sudo'],
-        } ->
-        service { $service:
+        }
+        -> service { $service:
             ensure   => running,
             enable   => true,
             provider => 'systemd',
