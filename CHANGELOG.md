@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.11.3](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.3)
+- FIXED: minor resource dependency ordering for pre-5.x Puppet
 - NEW: Puppet 5.x support
 - NEW: Ubuntu Zesty support
 
