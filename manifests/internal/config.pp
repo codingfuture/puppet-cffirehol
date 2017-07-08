@@ -77,7 +77,7 @@ class cffirehol::internal::config {
         -> Cfnetwork_firewall_port <| |>
         -> Cffirehol_config['firehol']
         -> Anchor['cfnetwork:firewall']
-    
+
     # Pre-5.x fix
     Anchor['cfnetwork:pre-firewall']
         -> Anchor['cffirehol:sep:iface']
