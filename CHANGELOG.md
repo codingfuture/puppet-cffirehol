@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.11.4](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.4)
+- FIXED: updated firehol.service with upstream changed for dependencies
+
 ## [0.11.3](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.3)
 - FIXED: minor resource dependency ordering for pre-5.x Puppet
 - CHANGED: updated t APT module >= 4.1
