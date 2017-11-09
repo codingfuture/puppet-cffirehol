@@ -101,14 +101,14 @@ function reload_ipset()
         bl4_files=<% if $blacklists4.size > 0 { %>"$(ls <%= $bl4_files %>)"<% } %>
 
         /usr/bin/iprange --optimize \
-                $bl4_files \
+                \$bl4_files \
                 <%= $user_dir %>/custom4.netset \
                 ><%= $bl4_merge %>
         
         bl6_files=<% if $blacklists6.size > 0 { %>"$(ls <%= $bl6_files %>)"<% } %>
 
         /usr/bin/iprange --optimize \
-                $bl6_files \
+                \$bl6_files \
                 <%= $user_dir %>/custom6.netset \
                 ><%= $bl6_merge %>
 EOT
