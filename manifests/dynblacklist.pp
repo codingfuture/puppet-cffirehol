@@ -13,7 +13,7 @@ class cffirehol::dynblacklist(
             'dshield',
             'feodo',
             'fullbogons',
-            'palevo',
+            'iblocklist_abuse_palevo',
             'spamhaus_drop',
             'spamhaus_edrop',
             'sslbl',

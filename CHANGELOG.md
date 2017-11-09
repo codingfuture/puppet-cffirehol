@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.11.5](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.5)
+- FIXED: blacklist name palevo -> iblocklist_abuse_palevo
+
 ## [0.11.4](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.11.4)
 - FIXED: updated firehol.service with upstream changed for dependencies
 
