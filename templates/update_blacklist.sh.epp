@@ -97,12 +97,24 @@ function reload_ipset()
     /usr/bin/sudo -H -u <%= $user %> bash -e <<EOT
         /usr/sbin/update-ipsets -s enable <%= $blacklists.join(' ') %> >/dev/null 2>&1
         /usr/sbin/update-ipsets -s run <%= $blacklists.join(' ') %> >/dev/null 2>&1
-        bl4_files=$(ls <%= $bl4_files %>)
-        bl6_files=$(ls <%= $bl6_files %>)
+        
+        if [ -n "<%= $bl4_files %>" ]; then
+            bl4_files=$(ls <%= $bl4_files %>)
+        else:
+            bl4_files=
+        fi
+
         /usr/bin/iprange --optimize \
                 $bl4_files \
                 <%= $user_dir %>/custom4.netset \
                 ><%= $bl4_merge %>
+        
+        if [ -n "<%= $bl6_files %>" ]; then
+            bl6_files=$(ls <%= $bl6_files %>)
+        else
+            bl6_files=
+        fi
+
         /usr/bin/iprange --optimize \
                 $bl6_files \
                 <%= $user_dir %>/custom6.netset \
