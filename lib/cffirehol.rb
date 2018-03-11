@@ -442,7 +442,7 @@ module CfFirehol
                 end
 
                 if portdef[:to_dst].nil?
-                    raise Puppet::DevError, "DNAT port must set to_dst property: #{k}"
+                    raise Puppet::DevError, "DNAT port must set to_dst property: #{service}"
                 end
 
                 inface, outface = iface.split('/')
