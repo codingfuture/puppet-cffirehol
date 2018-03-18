@@ -3,8 +3,11 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.12.1](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.12.1)
+## (next)
 - FIXED: failure on missing DNAT to_dst parameter
+- NEW: added uid/gid-based grouping for filter rules
+    - better readability of generated rules
+    - minor performance improvement
 
 ## [0.12.0](https://github.com/codingfuture/puppet-cffirehol/releases/tag/v0.12.0)
 - NEW: version bump of cf* series

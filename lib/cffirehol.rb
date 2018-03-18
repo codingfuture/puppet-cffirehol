@@ -269,6 +269,44 @@ module CfFirehol
         ifacemap[iface]
     end
 
+    def self.group_ports(ports)
+        groups = {}
+
+        ports.each { |p|
+            user = (p[:user] or []).sort
+            group = (p[:group] or []).sort
+
+            gkey = "#{user.join(' ')}:#{group.join(' ')}"
+            next if gkey == ':'
+            grp = groups[gkey]
+
+            if grp.nil?
+                grp = groups[gkey] = {
+                    user: user,
+                    group: group,
+                    ports: [],
+                }
+            end
+
+            grp[:ports] << p
+        }
+        ungrouped = ports.map { |p|
+            user = (p[:user] or []).sort
+            group = (p[:group] or []).sort
+
+            gkey = "#{user.join(' ')}:#{group.join(' ')}"
+            grp = groups[gkey]
+
+            if !grp or grp[:ports].length < 2
+                p
+            else
+                nil
+            end
+        }
+        ungrouped.compact!
+        return ungrouped, groups
+    end
+
     def self.gen_config()
         fhmeta = self.new_config
         fhmeta['generator_version'] = GENERATOR_VERSION
@@ -989,70 +1027,38 @@ module CfFirehol
                 fhconf << %Q{    server6 ping accept with hashlimit P6 upto 1/s burst 2} if iface_ipv6
             end
 
-            ports.each do |p|
-                service = p[:service]
-                port_type = p[:port_type]
-                src = p[:src] || []
-                dst = p[:dst] || []
-                user = (p[:user] or []).join(' ')
-                group = ( p[:group] or []).join(' ')
+            ungrouped, groups = group_ports(ports)
 
+            ungrouped.each do |p|
+                config_port(fhconf, p, {
+                    do_uidgid: true,
+                    iface_ipv4: iface_ipv4,
+                    iface_ipv6: iface_ipv6,
+                })
+            end
+
+            groups.each do |k, g|
                 cmd_cond = ''
+                user = (g[:user] or []).join(' ')
+                group = (g[:group] or []).join(' ')
+
                 cmd_cond += %Q{ uid "#{user}"} unless user.empty?
                 cmd_cond += %Q{ gid "#{group}"} unless group.empty?
 
-                comment = p[:comment]
-                if comment
-                    fhconf << '    # ' + comment.sub("\n", ' ')
+                fhconf << ''
+                fhconf << %Q{    group with#{cmd_cond}}
+
+                g[:ports].each do |p|
+                    config_port(fhconf, p, {
+                        iface_ipv4: iface_ipv4,
+                        iface_ipv6: iface_ipv6,
+                        indent: ' ' *8
+                    })
                 end
 
-                if src.empty? and dst.empty?
-                    cmd = %Q{    #{port_type} "#{service}" accept}
-                    cmd += cmd_cond
-                    fhconf << cmd
-                else
-                    src4, src6, dyn_src = filter_ipv_arg(src)
-                    dst4, dst6 = filter_ipv_arg(dst)
-                    
-                    if iface_ipv4 and !(src4.empty? and dst4.empty?) and \
-                                (src4.empty? == src.empty?) and \
-                                (dst4.empty? == dst.empty?)
-                    then
-                        cmd = %Q{    #{port_type}4 "#{service}" accept}
-                        cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                        cmd += %Q{ src "#{src4}"} unless src4.empty?
-                        cmd += cmd_cond
-                        fhconf << cmd
-                        
-                        if dyn_src
-                            cmd = %Q{    #{port_type}4 "#{service}" accept}
-                            cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                            cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
-                            cmd += cmd_cond
-                            fhconf << cmd
-                        end
-                    end
-                    
-                    if iface_ipv6 and !(src6.empty? and dst6.empty?) and \
-                                (src6.empty? == src.empty?) and \
-                                (dst6.empty? == dst.empty?)
-                    then
-                        cmd = %Q{    #{port_type}6 "#{service}" accept}
-                        cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                        cmd += %Q{ src "#{src6}"} unless src6.empty?
-                        cmd += cmd_cond
-                        fhconf << cmd
-                        
-                        if dyn_src
-                            cmd = %Q{    #{port_type}6 "#{service}" accept}
-                            cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                            cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
-                            cmd += cmd_cond
-                            fhconf << cmd
-                        end
-                    end
-                end
+                fhconf << %Q{    group end}
             end
+
             fhconf << ''
         end
         fhconf << ''
@@ -1099,56 +1105,7 @@ module CfFirehol
                 end
 
                 outfacedef.each do |p|
-                    service = p[:service]
-                    port_type = p[:port_type]
-                    src = p[:src] || []
-                    dst = p[:dst] || []
-
-                    comment = p[:comment]
-                    if comment
-                        fhconf << '    # ' + comment.sub("\n", ' ')
-                    end
-
-                    if src.empty? and dst.empty?
-                        fhconf << %Q{    #{port_type} "#{service}" accept}
-                    else
-                        src4, src6, dyn_src = filter_ipv_arg(src)
-                        dst4, dst6 = filter_ipv_arg(dst)
-                        
-                        if !(src4.empty? and dst4.empty?) and \
-                                (src4.empty? == src.empty?) and \
-                                (dst4.empty? == dst.empty?)
-                        then
-                            cmd = %Q{    #{port_type}4 "#{service}" accept}
-                            cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                            cmd += %Q{ src "#{src4}"} unless src4.empty?
-                            fhconf << cmd
-                            
-                            if dyn_src
-                                cmd = %Q{    #{port_type}4 "#{service}" accept}
-                                cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
-                                cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
-                                fhconf << cmd
-                            end
-                        end
-
-                        if !(src6.empty? and dst6.empty?) and \
-                                (src6.empty? == src.empty?) and \
-                                (dst6.empty? == dst.empty?)
-                        then
-                            cmd = %Q{    #{port_type}6 "#{service}" accept}
-                            cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                            cmd += %Q{ src "#{src6}"} unless src6.empty?
-                            fhconf << cmd
-                            
-                            if dyn_src
-                                cmd = %Q{    #{port_type}6 "#{service}" accept}
-                                cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
-                                cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
-                                fhconf << cmd
-                            end
-                        end
-                    end
+                    config_port(fhconf, p, {})
                 end
                 fhconf << ''
             end
@@ -1183,5 +1140,77 @@ module CfFirehol
         File.rename(conftmp, FIREHOL_CONF_FILE)
         File.rename(metatmp, FIREHOL_META_FILE)
         true
+    end
+
+
+    def self.config_port(fhconf, p, opt)
+        service = p[:service]
+        port_type = p[:port_type]
+        indent = opt.fetch(:indent, ' ' * 4)
+        src = p[:src] || []
+        dst = p[:dst] || []
+        cmd_cond = ''
+
+        if opt.fetch(:do_uidgid, false)
+            user = (p[:user] or []).join(' ')
+            group = (p[:group] or []).join(' ')
+
+            cmd_cond += %Q{ uid "#{user}"} unless user.empty?
+            cmd_cond += %Q{ gid "#{group}"} unless group.empty?
+        end
+
+        comment = p[:comment]
+        if comment
+            fhconf << %Q{#{indent}\##{comment.sub("\n", ' ')}}
+        end
+
+        if src.empty? and dst.empty?
+            cmd = %Q{#{indent}#{port_type} "#{service}" accept}
+            cmd += cmd_cond
+            fhconf << cmd
+        else
+            src4, src6, dyn_src = filter_ipv_arg(src)
+            dst4, dst6 = filter_ipv_arg(dst)
+            
+            if opt.fetch(:iface_ipv4, true) and \
+                !(src4.empty? and dst4.empty?) and \
+                (src4.empty? == src.empty?) and \
+                (dst4.empty? == dst.empty?)
+            then
+                cmd = %Q{#{indent}#{port_type}4 "#{service}" accept}
+                cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                cmd += %Q{ src "#{src4}"} unless src4.empty?
+                cmd += cmd_cond
+                fhconf << cmd
+                
+                if dyn_src
+                    cmd = %Q{#{indent}#{port_type}4 "#{service}" accept}
+                    cmd += %Q{ dst "#{dst4}"} unless dst4.empty?
+                    cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                    cmd += cmd_cond
+                    fhconf << cmd
+                end
+            end
+            
+            if opt.fetch(:iface_ipv6, true) and \
+                !(src6.empty? and dst6.empty?) and \
+                (src6.empty? == src.empty?) and \
+                (dst6.empty? == dst.empty?)
+            then
+                cmd = %Q{#{indent}#{port_type}6 "#{service}" accept}
+                cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                cmd += %Q{ src "#{src6}"} unless src6.empty?
+                cmd += cmd_cond
+                fhconf << cmd
+                
+                if dyn_src
+                    cmd = %Q{#{indent}#{port_type}6 "#{service}" accept}
+                    cmd += %Q{ dst "#{dst6}"} unless dst6.empty?
+                    cmd += %Q{ custom "-m conntrack --ctstate ESTABLISHED"}
+                    cmd += cmd_cond
+                    fhconf << cmd
+                end
+            end
+        end
     end
 end
