@@ -290,6 +290,7 @@ module CfFirehol
 
             grp[:ports] << p
         }
+
         ungrouped = ports.map { |p|
             user = (p[:user] or []).sort
             group = (p[:group] or []).sort
@@ -298,12 +299,15 @@ module CfFirehol
             grp = groups[gkey]
 
             if !grp or grp[:ports].length < 2
+                groups.delete gkey
                 p
             else
                 nil
             end
         }
+
         ungrouped.compact!
+
         return ungrouped, groups
     end
 
