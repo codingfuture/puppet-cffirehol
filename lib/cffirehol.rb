@@ -272,7 +272,9 @@ module CfFirehol
     def self.group_ports(ports)
         groups = {}
 
-        ports.each { |p|
+        ungrouped = ports.uniq
+
+        ungrouped.each { |p|
             user = (p[:user] or []).sort
             group = (p[:group] or []).sort
 
@@ -291,7 +293,7 @@ module CfFirehol
             grp[:ports] << p
         }
 
-        ungrouped = ports.map { |p|
+        ungrouped = ungrouped.map { |p|
             user = (p[:user] or []).sort
             group = (p[:group] or []).sort
 
