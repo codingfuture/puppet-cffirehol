@@ -5,6 +5,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
 - FIXED: failure on missing DNAT to_dst parameter
+- FIXED: lost filter dst/src on primary interfaces for unroutable addresses
 - NEW: added uid/gid-based grouping for filter rules
     - better readability of generated rules
     - minor performance improvement

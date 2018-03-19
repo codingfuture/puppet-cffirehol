@@ -616,26 +616,25 @@ module CfFirehol
             # filter by routable dst for client and src for server, if set
             if iface == 'any'
                 gdst_match = []
-                gdst_reject = []
                 gsrc_match = []
-                gsrc_reject = []
                 gportfdef = []
                 ifaces.each do |iface, ifacedef|
                     iface_ports[iface] ||= []
                     msrc = portdef[:src]
                     mdst = portdef[:dst]
-                    leafface = ifacedef[:gateway].nil?
+                    leafface = ifacedef[:gateway].nil? || ifacedef[:gateway].empty?
+                    dynface = ifacedef[:address].nil? || ifacedef[:address].empty?
 
-                    if port_type == 'client' and !mdst.nil? and !mdst.empty?
+                    if dynface
+                        # noop in routable filter
+                    elsif port_type == 'client' and !mdst.nil? and !mdst.empty?
                         mdst, rdst = filter_routable(mdst, ifacedef)
-                        gdst_match += mdst
-                        gdst_reject += rdst
                         next if mdst.empty? and leafface
+                        gdst_match += mdst
                     elsif port_type == 'server' and !msrc.nil? and !msrc.empty?
                         msrc, rsrc = filter_routable(msrc, ifacedef)
-                        gsrc_match += msrc
-                        gsrc_reject += rsrc
                         next if msrc.empty? and leafface
+                        gsrc_match += msrc
                     end
 
                     port_override = portdef.merge({
@@ -656,11 +655,11 @@ module CfFirehol
                     end
                 end
 
-                gsrc_reject.uniq!
-                gsrc_reject -= gsrc_match
+                gsrc_reject = portdef[:src] || []
+                gsrc_reject = gsrc_reject - gsrc_match # no inplace!
 
-                gdst_reject.uniq!
-                gdst_reject -= gdst_match
+                gdst_reject = portdef[:dst] || []
+                gdst_reject = gdst_reject - gdst_match # no inplace!
 
                 # Add all unmatched to interfaces with default gateway
                 gportfdef.each do |gdef|
