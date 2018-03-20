@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## (next)
+- FIXED: further improved src/dst processing for main interface
+
 ## 0.12.1 (2018-03-19)
 - FIXED: failure on missing DNAT to_dst parameter
 - FIXED: lost filter dst/src on primary interfaces for unroutable addresses

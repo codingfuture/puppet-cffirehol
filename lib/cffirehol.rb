@@ -627,13 +627,15 @@ module CfFirehol
 
                     if dynface
                         # noop in routable filter
+                    elsif not leafface
+                        # postpone constraint reduction for gateway facing
                     elsif port_type == 'client' and !mdst.nil? and !mdst.empty?
                         mdst, rdst = filter_routable(mdst, ifacedef)
-                        next if mdst.empty? and leafface
+                        next if mdst.empty?
                         gdst_match += mdst
                     elsif port_type == 'server' and !msrc.nil? and !msrc.empty?
                         msrc, rsrc = filter_routable(msrc, ifacedef)
-                        next if msrc.empty? and leafface
+                        next if msrc.empty?
                         gsrc_match += msrc
                     end
 
@@ -650,34 +652,34 @@ module CfFirehol
                     else
                         gportfdef << {
                             :iface => iface,
+                            :ifacedef => ifacedef,
                             :portdef => port_override
                         }
                     end
                 end
 
-                gsrc_reject = portdef[:src] || []
-                gsrc_reject = gsrc_reject - gsrc_match # no inplace!
-
-                gdst_reject = portdef[:dst] || []
-                gdst_reject = gdst_reject - gdst_match # no inplace!
-
-                # Add all unmatched to interfaces with default gateway
                 gportfdef.each do |gdef|
+                    iface = gdef[:iface]
+                    ifacedef = gdef[:ifacedef]
                     port_override = gdef[:portdef]
-                    unless gdst_reject.empty?
-                        mdst = port_override[:dst] || []
-                        mdst += gdst_reject
-                        mdst.uniq!
+
+                    unless gdst_match.empty?
+                        mdst = port_override[:dst].clone
+                        _, gdst_unroutable_match = filter_routable(gdst_match, ifacedef)
+                        mdst -= gdst_unroutable_match
+                        next if mdst.empty?
                         port_override[:dst] = mdst
                     end
-                    unless gsrc_reject.empty?
-                        msrc = port_override[:src] || []
-                        msrc += gsrc_reject
-                        msrc.uniq!
+
+                    unless gsrc_match.empty?
+                        msrc = port_override[:src].clone
+                        _, gsrc_unroutable_match = filter_routable(gsrc_match, ifacedef)
+                        msrc -= gsrc_unroutable_match
+                        next if msrc.empty?
                         port_override[:src] = msrc
                     end
 
-                    iface_ports[gdef[:iface]] << port_override
+                    iface_ports[iface] << port_override
                 end
                 next
             end
