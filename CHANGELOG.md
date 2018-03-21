@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## (next)
+- FIXED: minor Ruby warnings
+
 ## 0.12.2 (2018-03-20)
 - FIXED: further improved src/dst processing for main interface
 

@@ -1059,7 +1059,7 @@ module CfFirehol
                     config_port(fhconf, p, {
                         iface_ipv4: iface_ipv4,
                         iface_ipv6: iface_ipv6,
-                        indent: ' ' *8
+                        indent: ( ' ' * 8 ),
                     })
                 end
 
@@ -1153,7 +1153,7 @@ module CfFirehol
     def self.config_port(fhconf, p, opt)
         service = p[:service]
         port_type = p[:port_type]
-        indent = opt.fetch(:indent, ' ' * 4)
+        indent = opt.fetch(:indent, (' ' * 4) )
         src = p[:src] || []
         dst = p[:dst] || []
         cmd_cond = ''
