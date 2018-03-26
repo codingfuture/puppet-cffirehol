@@ -36,7 +36,7 @@ The proper deployment procedure should be:
 ## Setup
 
 Please use [librarian-puppet](https://rubygems.org/gems/librarian-puppet/) or
-[cfpuppetserver module](https://forge.puppetlabs.com/codingfuture/cfpuppetserver) to deal with dependencies.
+[cfpuppetserver module](https://codingfuture.net/docs/cfpuppetserver) to deal with dependencies.
 
 There is a known r10k issue [RK-3](https://tickets.puppetlabs.com/browse/RK-3) which prevents
 automatic dependencies of dependencies installation.
@@ -161,4 +161,4 @@ Configuration of dynamic blacklist.
 * `custom_netset6_file = undef` - path to external IPv6 blacklist, if any
 
 
-[cfnetwork]: https://github.com/codingfuture/puppet-cfnetwork
+[cfnetwork]: https://codingfuture.net/docs/cfnetwork
