@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## (next)
+## 1.0.0 (2018-03-26)
 - FIXED: minor Ruby warnings
 
 ## 0.12.2 (2018-03-20)
