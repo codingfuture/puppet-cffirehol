@@ -8,16 +8,7 @@ class cffirehol::dynblacklist(
         $enable = false,
     Array[String[1]]
         $blacklists4 = [
-            # firehol-level1
-            'bambenek_c2',
-            'dshield',
-            'feodo',
-            'fullbogons',
-            'spamhaus_drop',
-            'spamhaus_edrop',
-            'sslbl',
-            'zeus_badips',
-            'ransomware_rw',
+            'firehol_level1',
         ],
     Array[String[1]]
         $blacklists6 = [],

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
+- CHANGED: to use firehol_level1 directly for dynblacklist by default
 - CHANGED: to always ICMP-reject connection according to RFC3360
 - FIXED: to accept unmatched TCP-RST on interfaces with REJECT policy
 
