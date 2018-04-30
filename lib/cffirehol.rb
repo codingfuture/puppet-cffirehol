@@ -992,6 +992,7 @@ module CfFirehol
             interface = 'interface'
             iface_ipv4 = true
             iface_ipv6 = true
+            accept_unknown_rst = false
             
             if dev != 'lo'
                 dst4, dst6 = filter_ipv_arg(iface_dst[iface])
@@ -1013,17 +1014,19 @@ module CfFirehol
             fhconf << %Q{#{interface} "#{dev}" "#{iface}"#{dst}}
 
             if dev == 'lo'
-                fhconf << %Q{    policy reject}
+                fhconf << %Q{    policy reject with port-unreach}
                 fhconf << %Q{    client4 icmp accept} if iface_ipv4
                 fhconf << %Q{    server4 icmp accept} if iface_ipv4
                 fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
                 fhconf << %Q{    server6 icmpv6 accept} if iface_ipv6
+                accept_unknown_rst = true
             elsif is_private_iface ifaces[iface]
-                fhconf << %Q{    policy reject}
+                fhconf << %Q{    policy reject with port-unreach}
                 fhconf << %Q{    client4 icmp accept} if iface_ipv4
                 fhconf << %Q{    server4 icmp accept} if iface_ipv4
                 fhconf << %Q{    client6 icmpv6 accept} if iface_ipv6
                 fhconf << %Q{    server6 icmpv6 accept} if iface_ipv6
+                accept_unknown_rst = true
             else
                 fhconf << %Q{    policy deny}
                 fhconf << %Q{    protection bad-packets}
@@ -1067,6 +1070,15 @@ module CfFirehol
             end
 
             fhconf << ''
+
+            if accept_unknown_rst
+                fhconf << '    # prevent noise & local connection timeouts'
+                fhconf << %Q{    iptables -A in_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    iptables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    ip6tables -A in_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
+                fhconf << %Q{    ip6tables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
+                fhconf << ''
+            end
         end
         fhconf << ''
 
