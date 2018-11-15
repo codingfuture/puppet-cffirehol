@@ -10,7 +10,7 @@ class cffirehol::debian::params {
     {
         $launchpad_release = 'xenial'
     } elsif ($::facts['operatingsystem'] == 'Ubuntu' and
-             versioncmp($::facts['operatingsystemrelease'], '18.04') >= 0)
+            versioncmp($::facts['operatingsystemrelease'], '18.04') >= 0)
     {
         $launchpad_release = 'bionic'
     } else {
