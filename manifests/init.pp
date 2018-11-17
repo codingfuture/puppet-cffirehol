@@ -15,8 +15,22 @@ class cffirehol (
         $ip_blacklist = undef,
     Boolean
         $synproxy_public = true,
-    Hash[String[1], Hash]
+    Hash[String[1], Struct[{
+        'timeout'      => Integer[600],
+        'ipset'        => Variant[Cfnetwork::Ipsetname,Array[Cfnetwork::Ipsetname]],
+        'key_b64'      => Cffirehol::Base64,
+        'hmac_key_b64' => Cffirehol::Base64,
+    }]]
         $knockers = {},
+    Optional[Hash[String[1],Struct[{
+        'user'         => Pattern[/^[a-z][a-z0-9]+$/],
+        'host'         => Pattern[/^[a-z][a-z0-9.-]+$/],
+        'port'         => Cfnetwork::Port,
+        'test_port'    => Cfnetwork::Port,
+        'key_b64'      => Cffirehol::Base64,
+        'hmac_key_b64' => Cffirehol::Base64,
+    }]]]
+        $knock_remote = undef,
 ) {
     include stdlib
     require cfnetwork
@@ -34,5 +48,9 @@ class cffirehol (
 
     require cffirehol::internal::config
     require cffirehol::dynblacklist
+
+    if $knock_remote {
+        include cffirehol::fwknop
+    }
 }
 

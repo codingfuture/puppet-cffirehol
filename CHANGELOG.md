@@ -5,6 +5,9 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
 - CHANGED: updated for Ubuntu 18.04 Bionic support
+- CHANGED: to more strictly check knockers parameters
+- NEW: fwknop client support
+- NEW: knock clients support
 
 ## 1.1.0 (2018-04-30)
 - CHANGED: to use firehol_level1 directly for dynblacklist by default

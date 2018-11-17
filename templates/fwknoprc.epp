@@ -1,0 +1,19 @@
+<% |Hash $client|
+-%>
+[default]
+WGET_CMD /usr/bin/wget
+SPA_SERVER_PROTO udp
+USE_HMAC Y
+HMAC_DIGEST_TYPE sha256
+RESOLVE_IP_HTTPS Y
+RESOLVE_URL https://api.ipify.org
+ACCESS tcp/1
+
+<% $client.each |$n, $cfg| { -%>
+[<%= $n %>]
+SPOOF_USER <%= $cfg['user'] %>
+SPA_SERVER <%= $cfg['host'] %>
+SPA_SERVER_PORT <%= $cfg['port'] %>
+KEY_BASE64 <%= $cfg['key_b64'] %>
+HMAC_KEY_BASE64 <%= $cfg['hmac_key_b64'] %>
+<% } %>

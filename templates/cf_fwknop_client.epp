@@ -1,0 +1,11 @@
+<% |Hash $client|
+-%>
+#!/bin/dash
+
+while sleep 60; do
+<% $client.each |$n, $cfg| { -%>
+    if ! /bin/nc.traditional -z -w3 <%= $cfg['host'] %> <%= $cfg['test_port'] %>; then
+        /usr/bin/fwknop -n <%= $n %>
+    fi
+<% } -%>
+done

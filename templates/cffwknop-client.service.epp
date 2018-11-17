@@ -1,0 +1,26 @@
+[Unit]
+Description=CF: Firewall Knock Operator Daemon
+After=network-online.target
+
+[Service]
+
+User=<%= $cffirehol::fwknop::user %>
+Group=<%= $cffirehol::fwknop::group %>
+
+Restart=always
+RestartSec=5
+UMask=0027
+RuntimeDirectory=<%= $cffirehol::fwknop::client_service %>
+
+CPUAccounting=true
+CPUShares=100
+MemoryAccounting=true
+MemoryLimit=16M
+
+
+Type=simple
+ExecStart=<%= $cffirehol::fwknop::client_helper_bin %>
+
+
+[Install]
+WantedBy=multi-user.target

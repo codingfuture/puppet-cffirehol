@@ -10,7 +10,10 @@ class cffirehol::fwknop(
     Cfnetwork::Port
         $port = 62201, # the default of fwknopd
 ) {
-    if $enable {
+    $knock_remote = $cffirehol::knock_remote
+    $enable_client = ($knock_remote != undef)
+
+    if $enable or $enable_client {
         $service = 'cffwknopd'
         $user = 'cffwknop'
         $group = $user
@@ -18,19 +21,21 @@ class cffirehol::fwknop(
         $access_dir = "${conf_dir}/access"
         $helper_bin = "${conf_dir}/cf_fwknop_ipset_helper"
 
-        if !defined(Package['sudo']) {
-            package { 'sudo': }
-        }
+        ensure_packages(['sudo'])
 
-        group { $group:
+        Package['sudo']
+        -> group { $group:
             ensure => present,
         }
         -> user { $user:
             ensure  => present,
             gid     => $group,
+            home    => $conf_dir,
             require => Group[$group]
         }
-        -> package { 'fwknop-server': }
+        -> package { 'fwknop-server':
+            ensure => $enable,
+        }
         -> service { 'fwknop-server':
             ensure   => false,
             enable   => false,
@@ -80,8 +85,8 @@ ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
             require => Package['sudo'],
         }
         -> service { $service:
-            ensure   => running,
-            enable   => true,
+            ensure   => $enable,
+            enable   => $enable,
             provider => 'systemd',
         }
 
@@ -93,5 +98,55 @@ ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
         package { 'fwknop-server':
             ensure => false
         }
+    }
+
+    # Client
+    #--------------
+    $client_service = 'cffwknop-client'
+    $client_helper_bin = "${conf_dir}/cf_fwknop_client"
+
+    file { "/etc/systemd/system/${client_service}.service":
+        mode    => '0644',
+        content => epp('cffirehol/cffwknop-client.service.epp'),
+        notify  => Exec['cfnetwork-systemd-reload'],
+    }
+    -> service { $client_service:
+        ensure   => $enable_client,
+        enable   => $enable_client,
+        provider => 'systemd',
+    }
+
+    if $enable_client {
+        $knock_remote.each |$n, $cfg| {
+            cfnetwork::describe_service { "cffwknop_${n}":
+                server => [
+                    "udp/${cfg['port']}",
+                    "tcp/${cfg['test_port']}",
+                ],
+            }
+            cfnetwork::client_port { "any:cffwknop_${n}:auto":
+                user => $user,
+                dst  => $cfg['host'],
+            }
+        }
+
+        cfnetwork::client_port { "any:cffwknop:${user}":
+            user => $user,
+        }
+
+        package { 'fwknop-client': }
+        -> file { $client_helper_bin:
+            owner   => $user,
+            group   => $group,
+            mode    => '0700',
+            content => epp('cffirehol/cf_fwknop_client.epp', { client => $knock_remote }),
+        }
+        ~>file { "${conf_dir}/.fwknoprc":
+            owner   => $user,
+            group   => $group,
+            mode    => '0600',
+            content => epp('cffirehol/fwknoprc.epp', { client => $knock_remote }),
+        }
+        ~> Service[$client_service]
     }
 }
