@@ -106,6 +106,12 @@ Suggested command line:
 fwknop -R -n myserver -A tcp/22
 ```
 
+## Knocking remote
+
+In some cases, a dynamic IP is assigned to client hosts on every boot. This functionality
+checks access every 60 seconds and issues fwknop request, if it's unable to connect to
+`test_port` on target host within 3 seconds.
+
 ## Classes and resources types
 
 ### class `cffirehol`
@@ -120,7 +126,14 @@ Options:
 * `custom_headers` = `[]` - optional, add custom FireHOL configuration headers
 * `synproxy_public` = `true` - protect TCP services with SYNPROXY on all public interfaces.
     Please see [cfnetwork][] for definition of public interface.
-* `knockers = {}` - create resources of `cffirehol::knocker`
+* `knockers = {}` - create resources of `cffirehol::knocker` when key is username.
+* `knock_remote = {}` - create knocking client.
+    - `user` - user name for fwknop,
+    - `host` - target host,
+    - `port` - target fwknop UDP port,
+    - `test_port` - target TCP port to check access,
+    - `key_b64` - fwknop key in Base64 encoding,
+    - `hmac_key_b64` - fwknop HMAC key in Base64 encoding.
 
 ### class `ffirehol::debian`
 

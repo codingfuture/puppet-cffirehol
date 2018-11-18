@@ -16,8 +16,8 @@ class cffirehol (
     Boolean
         $synproxy_public = true,
     Hash[String[1], Struct[{
-        'timeout'      => Integer[600],
-        'ipset'        => Variant[Cfnetwork::Ipsetname,Array[Cfnetwork::Ipsetname]],
+        'timeout'      => Optional[Integer[600]],
+        'ipset'        => Optional[Variant[Cfnetwork::Ipsetname,Array[Cfnetwork::Ipsetname]]],
         'key_b64'      => Cffirehol::Base64,
         'hmac_key_b64' => Cffirehol::Base64,
     }]]
