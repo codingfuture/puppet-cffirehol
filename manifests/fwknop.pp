@@ -20,6 +20,10 @@ class cffirehol::fwknop(
         $conf_dir = '/etc/fwknop'
         $access_dir = "${conf_dir}/access"
         $helper_bin = "${conf_dir}/cf_fwknop_ipset_helper"
+        $ensure_package = $enable ? {
+            true => present,
+            default => absent
+        }
 
         ensure_packages(['sudo'])
 
@@ -34,7 +38,7 @@ class cffirehol::fwknop(
             require => Group[$group]
         }
         -> package { 'fwknop-server':
-            ensure => $enable,
+            ensure => $ensure_package,
         }
         -> service { 'fwknop-server':
             ensure   => false,
