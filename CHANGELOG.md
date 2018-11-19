@@ -7,6 +7,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - CHANGED: updated for Ubuntu 18.04 Bionic support
 - CHANGED: to more strictly check knockers parameters
 - CHANGED: to disable automatic conntrack helpers
+- FIXED: to re-generate firehol.conf, if missing
 - NEW: fwknop client support
 - NEW: knock clients support
 

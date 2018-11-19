@@ -318,7 +318,7 @@ module CfFirehol
         fhmeta['generator_version'] = GENERATOR_VERSION
 
         metafile = JSON.pretty_generate(fhmeta)
-        if self.orig_metafile == metafile
+        if self.orig_metafile == metafile and File.exists? FIREHOL_CONF_FILE
             debug('Meta files match, no need to reconfigure')
             return false
         end
