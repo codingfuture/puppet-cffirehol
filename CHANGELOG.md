@@ -6,6 +6,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 ## (next)
 - CHANGED: updated for Ubuntu 18.04 Bionic support
 - CHANGED: to more strictly check knockers parameters
+- CHANGED: to disable automatic conntrack helpers
 - NEW: fwknop client support
 - NEW: knock clients support
 

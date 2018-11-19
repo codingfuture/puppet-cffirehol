@@ -347,6 +347,7 @@ module CfFirehol
         fhconf << 'FIREHOL_INPUT_ACTIVATION_POLICY="DROP"'
         fhconf << 'FIREHOL_OUTPUT_ACTIVATION_POLICY="DROP"'
         fhconf << 'FIREHOL_FORWARD_ACTIVATION_POLICY="DROP"'
+        fhconf << 'FIREHOL_CONNTRACK_HELPERS_ASSIGNMENT="manual"'
         fhconf << ''
 
         dnat_ports = []
