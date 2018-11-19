@@ -15,6 +15,8 @@ Puppet::Type.type(:cffirehol_config).provide(
     desc "FireHOL provider for cffirehol_config"
     
     commands :firehol => "/sbin/firehol"
+    commands :iptables => "/sbin/iptables"
+    commands :sysctl => "/sbin/sysctl"
     
     def self.instances
         instances = []
@@ -63,6 +65,17 @@ Puppet::Type.type(:cffirehol_config).provide(
             FileUtils.touch(restart_file)
             
             if @resource[:enable]
+                iptables_res = iptables('-L', 'INPUT').split("\n")
+
+                if (iptables_res[0] == 'Chain INPUT (policy ACCEPT)')
+                    tcp_loose = sysctl('-nb', 'net.netfilter.nf_conntrack_tcp_loose')
+                    
+                    if tcp_loose == "0"
+                        warning('Enabling firewall learning for the first activation!')
+                        sysctl('-w', 'net.netfilter.nf_conntrack_tcp_loose=1')
+                    end
+                end
+
                 warning('Running: /sbin/firehol start')
                 firehol('start')
                 FileUtils.rm_f(restart_file)
