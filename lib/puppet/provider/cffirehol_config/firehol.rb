@@ -73,6 +73,7 @@ Puppet::Type.type(:cffirehol_config).provide(
                     if tcp_loose == "0"
                         warning('Enabling firewall learning for the first activation!')
                         sysctl('-w', 'net.netfilter.nf_conntrack_tcp_loose=1')
+                        warning('Press ENTER once you see "firehol start" until you see other output!')
                     end
                 end
 
