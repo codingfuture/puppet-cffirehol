@@ -55,8 +55,7 @@ class cffirehol::dynblacklist(
             mode   => '0700',
         }
 
-        cfnetwork::client_port { ['any:http:cffirehol',
-                                'any:https:cffirehol']:
+        cfnetwork::client_port { 'any:cfhttp:cffirehol':
             user => $user,
         }
 

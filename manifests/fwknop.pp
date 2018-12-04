@@ -134,7 +134,7 @@ ${user}   ALL=(ALL:ALL) NOPASSWD: /sbin/ipset
             }
         }
 
-        cfnetwork::client_port { ['any:http:cffwknop', 'any:https:cffwknop']:
+        cfnetwork::client_port { 'any:cfhttp:cffwknop':
             user => $user,
         }
 

@@ -8,6 +8,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - CHANGED: to more strictly check knockers parameters
 - CHANGED: to disable automatic conntrack helpers
 - CHANGED: to forcibly enable firewall learning on the first activation
+- CHANGED: to use cfhttp service in firewall config
 - FIXED: to re-generate firehol.conf, if missing
 - NEW: fwknop client support
 - NEW: knock clients support
