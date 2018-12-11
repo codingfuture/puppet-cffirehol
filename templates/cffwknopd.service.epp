@@ -15,7 +15,7 @@ RuntimeDirectory=<%= $cffirehol::fwknop::service %>
 CPUAccounting=true
 CPUShares=100
 MemoryAccounting=true
-MemoryLimit=16M
+MemoryHigh=16M
 
 
 Type=forking
