@@ -5,6 +5,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
 - CHANGED: fwknopd not to use hard memory limit
+- FIXED: complex syncproxy/DNAT case with mix of IPv4/IPv6
 
 ## 1.2.0 (2018-12-09)
 - CHANGED: updated for Ubuntu 18.04 Bionic support

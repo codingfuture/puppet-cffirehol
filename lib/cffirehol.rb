@@ -843,8 +843,10 @@ module CfFirehol
                         # NAT still uses input
                         synproxy_type = 'input'
                         #synproxy_type = 'forward'
-                        synproxy_action4 = %Q{dnat to "#{to4}#{to_port}"}
-                        synproxy_action6 = %Q{dnat to "#{to6}#{to_port}"}
+                        synproxy_action4 = nil
+                        synproxy_action6 = nil
+                        synproxy_action4 = %Q{dnat to "#{to4}#{to_port}"} unless to4.empty?
+                        synproxy_action6 = %Q{dnat to "#{to6}#{to_port}"} unless to6.empty?
                         portdef[:synproxy] = true
                     else
                         synproxy_type = 'input'
@@ -856,13 +858,13 @@ module CfFirehol
                         proto, dport = p.split('/')
                         next unless proto == 'tcp'
 
-                        if !dst4.empty? and (src4.empty? == src.empty?)
+                        if !dst4.empty? and (src4.empty? == src.empty?) and !synproxy_action4.nil?
                             cmd = %Q{synproxy4 #{synproxy_type} inface #{dev} dst "#{dst4}" dport "#{dport}"}
                             cmd += %Q{ src "#{src4}"} unless src4.empty?
                             cmd += %Q{ #{synproxy_action4}}
                             fhconf << cmd
                         end
-                        if !dst6.empty? and (src6.empty? == src.empty?)
+                        if !dst6.empty? and (src6.empty? == src.empty?) and !synproxy_action6.nil?
                             cmd = %Q{synproxy6 #{synproxy_type} inface #{dev} dst "#{dst6}" dport "#{dport}"}
                             cmd += %Q{ src "#{src6}"} unless src6.empty?
                             cmd += %Q{ #{synproxy_action6}}
