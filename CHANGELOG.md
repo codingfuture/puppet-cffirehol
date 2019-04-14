@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## (next)
+## 1.3.0 (2019-04-14)
 - CHANGED: fwknopd not to use hard memory limit
 - FIXED: complex syncproxy/DNAT case with mix of IPv4/IPv6
 
