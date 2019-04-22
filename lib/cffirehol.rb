@@ -28,7 +28,7 @@ module CfFirehol
     # TODO: avoid hardcoding?
     DOCKER_IPS = [
         # 172.16.0.0/16 - 172.19.0.0/16
-        '172.16.0.0/15',
+        '172.16.0.0/14',
     ]
 
     @@unroutable_cache = nil
@@ -773,7 +773,7 @@ module CfFirehol
                 # NOTE: this is more like a dirty hack, but default DOCKER chain
                 #       management is quite loose.
                 next if not have_docker
-                next if iface == 'docker'
+                next if iface.start_with? 'docker'
                 next if iface == 'local'
                 # SNAT is based on physical devices
                 next unless snat_processed.add? dev
