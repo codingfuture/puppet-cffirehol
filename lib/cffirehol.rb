@@ -24,6 +24,13 @@ module CfFirehol
         'fc00::/7',
         '0100::/64',
     ]
+
+    # TODO: avoid hardcoding?
+    DOCKER_IPS = [
+        # 172.16.0.0/16 - 172.19.0.0/16
+        '172.16.0.0/15',
+    ]
+
     @@unroutable_cache = nil
     @@ipset_cache = nil
     @@needs_reconf = false
@@ -380,6 +387,7 @@ module CfFirehol
         
         #---
         debug('>> Creating iface map for merging')
+        have_docker = ifaces.has_key? 'docker'
         #dev2main = {}
         iface_map = {}
         iface_dst = {}
@@ -759,12 +767,28 @@ module CfFirehol
         fhconf << '#----------------'
         snat_processed = Set.new
         ifaces.each do |iface, ifacedef|
-            next if is_private_iface ifacedef
-            
+            dev = ifacedef[:device]
+
+            if is_private_iface(ifacedef)
+                # NOTE: this is more like a dirty hack, but default DOCKER chain
+                #       management is quite loose.
+                next if not have_docker
+                next if iface == 'docker'
+                next if iface == 'local'
+                # SNAT is based on physical devices
+                next unless snat_processed.add? dev
+
+                DOCKER_IPS.each { |net|
+                    cmd = %Q{iptables -t nat -A POSTROUTING -o "#{dev}"}
+                    cmd += %Q{ -s '#{net}'}
+                    cmd += %Q{ -j MASQUERADE}
+                    fhconf << cmd
+                }
+                next
+            end
+
             fhconf << %Q{# Iface: #{iface}}
             fhconf << '#---'
-            dev = ifacedef[:device]
-            address = ifacedef[:address]
 
             # unroutable
             routable, unroutable = filter_routable(UNROUTABLE_IPS, ifacedef)
