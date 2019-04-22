@@ -5,6 +5,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
 - FIXED: complex routing port issues
+- FIXED: SNAT on multi-iface per device
 
 ## 1.3.0 (2019-04-14)
 - CHANGED: fwknopd not to use hard memory limit

@@ -757,6 +757,7 @@ module CfFirehol
         debug('>> Protecting public interfaces')
         fhconf << '# Protection on public-facing interfaces'
         fhconf << '#----------------'
+        snat_processed = Set.new
         ifaces.each do |iface, ifacedef|
             next if is_private_iface ifacedef
             
@@ -824,8 +825,8 @@ module CfFirehol
 
                     if portdef[:dst].nil? or portdef[:dst].empty?
                         dst = []
-                        dst << ifaces[iface][:address] unless ifaces[iface][:address].nil?
-                        dst += ifaces[iface][:extra_addresses] unless ifaces[iface][:extra_addresses].nil?
+                        dst << ifacedef[:address] unless ifacedef[:address].nil?
+                        dst += ifacedef[:extra_addresses] unless ifacedef[:extra_addresses].nil?
 
                         if dst.empty?
                             warning("SYNPROXY requires that dst is set either explicitly " +
@@ -876,22 +877,32 @@ module CfFirehol
                 end
             end
 
+            # SNAT is based on physical devices
+            next unless snat_processed.add? dev
+
+            snat_addresses = []
+
+            ifaces.each { |_, v|
+                next if dev != v[:device]
+                snat_addresses << v[:address] unless v[:address].nil?
+                snat_addresses += v[:extra_addresses] unless v[:extra_addresses].nil?
+            }
+
+            snat_addr4_list, _ = filter_ipv(snat_addresses)
+
             # SNAT / MASQUERADE
-            if address.nil?
+            if snat_addr4_list.empty? or snat_addr4_list[0] == strip_mask(snat_addr4_list[0])
                 fhconf << %Q{iptables -t nat -A POSTROUTING -o "#{dev}" -j MASQUERADE}
             else
-                addr_list = [address]
-                addr_list += ifacedef[:extra_addresses] unless ifacedef[:extra_addresses].nil?
-                addr4_list, addr6_list = filter_ipv(addr_list)
-                addr4_list.map! do |item| strip_mask item end # strip mask
-                address = addr4_list[0]
+                snat_addr4_list.map! do |item| strip_mask item end # strip mask
+                address = snat_addr4_list[0]
 
-                addr4_list = addr4_list.join(',')
-                fhconf << %Q{iptables -t nat -N cfpost_snat_#{iface}}
-                fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -s #{addr4_list} -j RETURN}
-                fhconf << %Q{iptables -t nat -A cfpost_snat_#{iface} -j SNAT --to-source=#{address}}
-                fhconf << %Q{iptables -t nat -A POSTROUTING -o "#{dev}" -j cfpost_snat_#{iface}}
-                
+                snat_addr4_list = snat_addr4_list.join(',')
+                fhconf << %Q{iptables -t nat -N cfpost_snat_#{dev}}
+                fhconf << %Q{iptables -t nat -A cfpost_snat_#{dev} -s #{snat_addr4_list} -j RETURN}
+                fhconf << %Q{iptables -t nat -A cfpost_snat_#{dev} -j SNAT --to-source=#{address}}
+                fhconf << %Q{iptables -t nat -A POSTROUTING -o "#{dev}" -j cfpost_snat_#{dev}}
+
                 fhconf << %Q{ip6tables -t nat -A POSTROUTING -o "#{dev}" -j MASQUERADE}
             end
             fhconf << ''
