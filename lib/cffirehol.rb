@@ -570,7 +570,7 @@ module CfFirehol
                         end
 
                         if not found
-                            infaces += gwifaces.keys
+                            outfaces += gwifaces.keys
                         end
                     end
                 else
@@ -598,13 +598,15 @@ module CfFirehol
                         end
 
                         if port_type == 'client'
-                            inface, outface = outface, inface
+                            minface, moutface = outface, inface
+                        else
+                            minface, moutface = inface, outface
                         end
 
-                        router_ports[inface] ||= {}
-                        router_ports[inface][outface] ||= []
+                        router_ports[minface] ||= {}
+                        router_ports[minface][moutface] ||= []
 
-                        router_ports[inface][outface] << portdef.merge({
+                        router_ports[minface][moutface] << portdef.merge({
                             :port_type => port_type,
                             :service => service,
                             :comment => comment,
