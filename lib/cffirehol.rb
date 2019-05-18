@@ -1033,6 +1033,7 @@ module CfFirehol
             iface_ipv4 = true
             iface_ipv6 = true
             accept_unknown_rst = false
+            accept_root_ack = false
             
             if dev != 'lo'
                 dst4, dst6 = filter_ipv_arg(iface_dst[iface])
@@ -1094,6 +1095,7 @@ module CfFirehol
 
                 cmd_cond += %Q{ uid "#{user}"} unless user.empty?
                 cmd_cond += %Q{ gid "#{group}"} unless group.empty?
+                accept_root_ack = true unless user.empty? and group.empty?
 
                 fhconf << ''
                 fhconf << %Q{    group with#{cmd_cond}}
@@ -1117,6 +1119,13 @@ module CfFirehol
                 fhconf << %Q{    iptables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
                 fhconf << %Q{    ip6tables -A in_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
                 fhconf << %Q{    ip6tables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
+                fhconf << ''
+            end
+
+            if accept_root_ack
+                fhconf << '    # owner/group matches ACKs may be sent from system in some cases'
+                fhconf << %Q{    iptables -A out_#{iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    ip6tables -A out_#{iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv6
                 fhconf << ''
             end
         end
