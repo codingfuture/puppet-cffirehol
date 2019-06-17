@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## (next)
+## 1.3.1 (2019-06-17)
 - FIXED: complex routing port issues
 - FIXED: SNAT on multi-iface per device
 - FIXED: unmatched ACK issue in some cases of using owner match
