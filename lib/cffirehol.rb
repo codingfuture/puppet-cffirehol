@@ -362,6 +362,7 @@ module CfFirehol
         ifaces = fhmeta['ifaces'].clone
         custom_services = fhmeta['custom_services'].clone
         router_ports = {}
+        is_private_dev = {}
 
         #---
         debug('>> Merging partially defined ipsets')
@@ -394,7 +395,12 @@ module CfFirehol
         ifaces.keys.each do | iface |
             ifacedef = ifaces[iface]
             dev = ifacedef[:device]
-            
+            if dev.include? ':'
+                dev = dev.split(':')
+                ifacedef[:device] = dev[0]
+            end
+
+            is_private_dev[dev] = is_private_iface ifacedef
             iface_addr = []
             
             if ifacedef[:method].to_s != 'dhcp'
@@ -454,10 +460,11 @@ module CfFirehol
         debug('>> Populating local iface')
         ifaces.each do | iface, ifacedef |
             next if iface == 'local'
+            dev = ifacedef[:device]
             
             # make sure gateway ifaces a always first in router pairs
             unless ifacedef[:gateway].nil?
-                router_ports[iface] = {}
+                router_ports[dev] = {}
             end
 
             # make sure we found routes to self through lo
@@ -591,12 +598,14 @@ module CfFirehol
                 outfaces.uniq!
 
                 infaces.each do |inface|
+                    indev = ifaces[inface][:device]
                     outfaces.each do |outface|
+                        outdev = ifaces[outface][:device]
                         # avoid creating reverse routers which never get reached
                         # NOTE: ordering is very important for FW rule reachability
-                        if router_ports.has_key?(inface) and router_ports[inface].has_key?(outface)
+                        if router_ports.has_key?(indev) and router_ports[indev].has_key?(outdev)
                             port_type = 'server'
-                        elsif router_ports.has_key?(outface) and router_ports[outface].has_key?(inface)
+                        elsif router_ports.has_key?(outdev) and router_ports[outdev].has_key?(indev)
                             port_type = 'client'
                         elsif not ifaces[outface][:gateway].nil?
                             # prefer gateway to be the first
@@ -606,9 +615,9 @@ module CfFirehol
                         end
 
                         if port_type == 'client'
-                            minface, moutface = outface, inface
+                            minface, moutface = outdev, indev
                         else
-                            minface, moutface = inface, outface
+                            minface, moutface = indev, outdev
                         end
 
                         router_ports[minface] ||= {}
@@ -1135,26 +1144,16 @@ module CfFirehol
         fhconf << '# Routers'
         fhconf << '#----------------'
         router_ports.each do |inface, infacedef|
-            if ifaces.has_key?(inface)
-                dev = ifaces[inface][:device]
-                indev = 'inface "%s"' % dev
-                inprivate = is_private_iface ifaces[inface]
-            else
-                warning("Unknown inface: " + inface.to_s)
-                next
-            end
+            indev = 'inface "%s"' % inface
+            inprivate = is_private_dev[inface]
 
             infacedef.each do |outface, outfacedef|
                 if outface == 'any'
                     outdev = ''
                     outprivate = false
-                elsif ifaces.has_key?(outface)
-                    dev = ifaces[outface][:device]
-                    outdev = 'outface "%s"' % dev
-                    outprivate = is_private_iface ifaces[outface]
                 else
-                    warning("Unknown outface: " + outface.to_s)
-                    next
+                    outdev = 'outface "%s"' % outface
+                    outprivate = is_private_dev[outface]
                 end
 
                 fhconf << %Q{router "#{inface}_#{outface}" #{indev} #{outdev}}
@@ -1171,6 +1170,8 @@ module CfFirehol
                     fhconf << %Q{    client4 icmp accept}
                     fhconf << %Q{    client6 icmpv6 accept}
                 end
+
+                outfacedef.uniq!
 
                 outfacedef.each do |p|
                     config_port(fhconf, p, {})
