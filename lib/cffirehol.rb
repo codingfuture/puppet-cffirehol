@@ -320,6 +320,13 @@ module CfFirehol
         return ungrouped, groups
     end
 
+    def self.safe_iface(iface)
+        if iface.size > 10 # 28 - "in_" prefix
+            return Digest::MD5.hexdigest(iface)[0..8]
+        end
+        return iface
+    end
+
     def self.gen_config()
         fhmeta = self.new_config
         fhmeta['generator_version'] = GENERATOR_VERSION
@@ -1061,7 +1068,8 @@ module CfFirehol
                 end
             end
 
-            fhconf << %Q{#{interface} "#{dev}" "#{iface}"#{dst}}
+            fhconf << %Q{\# #{iface}}
+            fhconf << %Q{#{interface} "#{dev}" "#{safe_iface(iface)}"#{dst}}
 
             if dev == 'lo'
                 fhconf << %Q{    policy reject with port-unreach}
@@ -1156,7 +1164,9 @@ module CfFirehol
                     outprivate = is_private_dev[outface]
                 end
 
-                fhconf << %Q{router "#{inface}_#{outface}" #{indev} #{outdev}}
+                router_face = "#{inface}_#{outface}"
+                fhconf << %Q{\# #{router_face}}
+                fhconf << %Q{router "#{safe_iface(router_face)}" #{indev} #{outdev}}
                 if inprivate and outprivate
                     fhconf << %Q{    policy reject}
                 else

@@ -5,6 +5,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## (next)
 - FIXED: router configuration with aliased devices
+- FIXED: to support long interface names
 
 ## 1.3.1 (2019-06-17)
 - FIXED: complex routing port issues
