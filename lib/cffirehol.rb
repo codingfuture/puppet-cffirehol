@@ -1068,8 +1068,10 @@ module CfFirehol
                 end
             end
 
+            sf_iface = safe_iface(iface)
+
             fhconf << %Q{\# #{iface}}
-            fhconf << %Q{#{interface} "#{dev}" "#{safe_iface(iface)}"#{dst}}
+            fhconf << %Q{#{interface} "#{dev}" "#{sf_iface}"#{dst}}
 
             if dev == 'lo'
                 fhconf << %Q{    policy reject with port-unreach}
@@ -1132,17 +1134,17 @@ module CfFirehol
 
             if accept_unknown_rst
                 fhconf << '    # prevent noise & local connection timeouts'
-                fhconf << %Q{    iptables -A in_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
-                fhconf << %Q{    iptables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
-                fhconf << %Q{    ip6tables -A in_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
-                fhconf << %Q{    ip6tables -A out_#{iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
+                fhconf << %Q{    iptables -A in_#{sf_iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    iptables -A out_#{sf_iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    ip6tables -A in_#{sf_iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
+                fhconf << %Q{    ip6tables -A out_#{sf_iface} -p tcp --tcp-flags RST RST -j ACCEPT} if iface_ipv6
                 fhconf << ''
             end
 
             if accept_root_ack
                 fhconf << '    # owner/group matches ACKs may be sent from system in some cases'
-                fhconf << %Q{    iptables -A out_#{iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv4
-                fhconf << %Q{    ip6tables -A out_#{iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv6
+                fhconf << %Q{    iptables -A out_#{sf_iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv4
+                fhconf << %Q{    ip6tables -A out_#{sf_iface} -p tcp --tcp-flags ACK ACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT} if iface_ipv6
                 fhconf << ''
             end
         end
