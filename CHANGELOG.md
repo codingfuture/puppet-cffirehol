@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file. This
 project adheres to [Semantic Versioning](http://semver.org/).
 
-## (next)
+## 1.3.2 (2019-11-13)
 - FIXED: router configuration with aliased devices
 - FIXED: to support long interface names
 
